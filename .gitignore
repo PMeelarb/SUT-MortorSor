@@ -1,0 +1,24 @@
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+# IDE settings
+.vscode/
+
+# Build files
+dist/
+build/
+
+# Backup files
+*_backup.*
+
+# API key testing
+Backend/test.js

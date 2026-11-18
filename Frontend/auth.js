@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (facultySelect && majorSelect) {
         try {
             // 🔥 แก้ไข: เติม /api/programs ให้สมบูรณ์
-            const response = await fetch('https://bell-lanka-voices-scheduled.trycloudflare.com/api/programs');
+            const response = await fetch('http://localhost:3000/api/programs');
             const result = await response.json();
             
             if (result.status === 'success') {
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     switchAuthView('view-login');
                 });
 
-
+                
                 const loginStudentIdInput = document.getElementById('login-studentid');
                 if(loginStudentIdInput) loginStudentIdInput.value = studentId;
 

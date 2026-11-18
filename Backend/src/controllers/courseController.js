@@ -1,6 +1,6 @@
 const database = require('../config/oracle');
 
-// 📦 ฟังก์ชันที่ 1: ดึงรายวิชา (ปลดลิมิตแล้ว)
+// 📦 ฟังก์ชันที่ 1: ดึงรายวิชา 
 exports.getAllCourses = async (req, res) => {
     let connection;
     try {
