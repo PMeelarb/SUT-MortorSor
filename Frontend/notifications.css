@@ -1,0 +1,27 @@
+.sut-dialog, .sut-toast, .swal2-popup {
+    font-family: 'Prompt', sans-serif;
+    color: var(--sut-text, #2b211e);
+    background: var(--sut-paper, #fffaf6);
+    border: 1px solid var(--sut-line, #ebdad1);
+    border-radius: 18px;
+    box-shadow: 0 18px 54px #2b1e1a35;
+}
+.sut-dialog { margin: auto; padding: 22px; width: min(520px, calc(100% - 32px)); max-height: 86dvh; overflow: auto; }
+.sut-dialog::backdrop { background: #261c19a6; }
+.sut-dialog h2 { margin: 0 0 12px; font-size: 1.15rem; }
+.sut-dialog-message, .sut-toast p, .swal2-html-container { white-space: pre-line; overflow-wrap: anywhere; }
+.sut-dialog-message { margin: 0; max-height: 45dvh; overflow: auto; line-height: 1.65; }
+.sut-dialog-select { width: 100%; padding: 10px; border: 1px solid #d9c7bd; border-radius: 10px; background: white; }
+.sut-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.sut-dialog-actions button { border: 0; border-radius: 9px; padding: 9px 16px; cursor: pointer; font: inherit; }
+.sut-dialog-cancel { background: #f2e8e1; color: #342720; }
+.sut-dialog-confirm, .swal2-styled.swal2-confirm { background: #b53613 !important; color: white; }
+.sut-dialog[data-tone='danger'] .sut-dialog-confirm { background: #ab291d !important; }
+.sut-dialog :focus-visible, .sut-toast :focus-visible, .swal2-popup :focus-visible { outline: 2px solid #a73a18; outline-offset: 3px; }
+.sut-toast-region { position: fixed; inset: auto 18px 18px auto; z-index: 24000; display: grid; gap: 8px; width: min(390px, calc(100% - 36px)); pointer-events: none; }
+.sut-toast { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-inline-start: 4px solid #b53613; pointer-events: auto; }
+.sut-toast[data-tone='success'] { border-inline-start-color: #4f7454; }
+.sut-toast p { margin-top: 4px; max-height: 35dvh; overflow: auto; font-size: .875rem; }
+.sut-toast-close { align-self: flex-start; background: none; border: 0; padding: 0 5px; font-size: 1.2rem; cursor: pointer; }
+.swal2-container { z-index: 23000 !important; }
+.swal2-popup { font-size: .92rem; }

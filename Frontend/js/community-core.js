@@ -9,7 +9,7 @@ async function sendCommunityMessage() {
     if (!msg) return; 
 
     if (!currentChatRoomId) {
-        alert('กรุณาเลือกห้องแชทเพื่อนด้านซ้ายมือก่อนส่งข้อความครับ');
+        window.showAppNotice('กรุณาเลือกห้องแชทเพื่อนด้านซ้ายมือก่อนส่งข้อความครับ');
         return;
     }
 
@@ -30,20 +30,9 @@ async function sendCommunityMessage() {
         }
     } catch (err) {
         console.error("Send message error:", err);
-        alert('ส่งข้อความไม่สำเร็จ: ' + err.message);
+        window.showAppNotice('ส่งข้อความไม่สำเร็จ: ' + err.message);
     }
 }
-
-window.logoutUser = async function() {
-    if (!confirm('ต้องการออกจากระบบใช่หรือไม่?')) return;
-    localStorage.removeItem('sut_student_id');
-    window.location.href = 'auth.html';
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) logoutBtn.addEventListener('click', logoutUser);
-});
 
 window.openModal = function(id) { document.getElementById(id).style.display = 'flex'; };
 window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };

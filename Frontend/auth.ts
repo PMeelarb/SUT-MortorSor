@@ -1,8 +1,8 @@
+interface Window { showAppNotice(message: string): void; }
 declare var supabase: any;
 
 // เชื่อมต่อฐานข้อมูล
-const authSupabaseUrl = 'https://wgeameqajwbvnvzcnxwm.supabase.co';
-const authSupabaseKey = 'sb_publishable_-boyi5cXgE9MRC4v261MnQ_j4DCiZ3Q'; // คีย์ของคุณ
+const { url: authSupabaseUrl, publishableKey: authSupabaseKey } = (window as Window & { sutSupabaseConfig?: { url: string; publishableKey: string } }).sutSupabaseConfig || {};
 const authSupabaseClient = supabase.createClient(authSupabaseUrl, authSupabaseKey);
 
 // ประกาศชนิดของ View ที่สามารถเป็นไปได้
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (error) {
-                alert('รหัสนักศึกษาหรือรหัสผ่านไม่ถูกต้อง');
+                window.showAppNotice('รหัสนักศึกษาหรือรหัสผ่านไม่ถูกต้อง');
             } else {
                 // เข้าสู่ระบบสำเร็จ เด้งไปหน้าหลัก
                 window.location.href = 'index.html';
@@ -92,9 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (error) {
-                alert(`เกิดข้อผิดพลาด: ${error.message}`);
+                window.showAppNotice(`เกิดข้อผิดพลาด: ${error.message}`);
             } else {
-                alert('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
+                window.showAppNotice('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
                 switchAuthView('view-login'); // เด้งกลับหน้า Login
                 registerForm.reset(); // ล้างข้อมูลในฟอร์ม
             }
@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (forgotForm) {
         forgotForm.addEventListener('submit', (e: Event) => {
             e.preventDefault();
-            alert('ระบบได้ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลของคุณแล้ว');
+            window.showAppNotice('ระบบได้ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลของคุณแล้ว');
             switchAuthView('view-login'); // เด้งกลับหน้า Login
         });
     }

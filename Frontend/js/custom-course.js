@@ -127,7 +127,7 @@ window.addCustomCourseToTable = function() {
     const finStart = document.getElementById('custom-fin-start').value;
     const finEnd = document.getElementById('custom-fin-end').value;
 
-    if(!code || !name) return alert('⚠️ กรุณากรอกรหัสวิชาและชื่อวิชาให้ครบถ้วน');
+    if(!code || !name) return window.showAppNotice('⚠️ กรุณากรอกรหัสวิชาและชื่อวิชาให้ครบถ้วน');
 
     if(!start || !end || start.trim() === '' || end.trim() === '') {
         const uniqueId = `CUSTOM_${Date.now()}`;
@@ -180,7 +180,7 @@ window.addCustomCourseToTable = function() {
         }
     }
 
-    if (isOverlap) return alert(`⚠️ ไม่สามารถเพิ่มวิชานี้ได้!\nเวลาเรียนทับซ้อนกับวิชา ${overlapCourseName}`);
+    if (isOverlap) return window.showAppNotice(`⚠️ ไม่สามารถเพิ่มวิชานี้ได้!\nเวลาเรียนทับซ้อนกับวิชา ${overlapCourseName}`);
 
     const formatCustomExam = (d, s, e) => {
         if (!d) return "-";

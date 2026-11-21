@@ -8,7 +8,7 @@
 
 // 1. ฟังก์ชันเปิดหน้าต่าง Pop-up เลือกปีและเทอมที่จะแชร์
 window.shareMyScheduleToChat = function() {
-    if (!currentChatRoomId) return alert("⚠️ กรุณาเลือกห้องแชทเพื่อนก่อนครับ");
+    if (!currentChatRoomId) return window.showAppNotice("⚠️ กรุณาเลือกห้องแชทเพื่อนก่อนครับ");
     
     // ตรวจสอบและสร้าง UI Modal ขึ้นมาถ้ายังไม่มี
     createShareModalIfNotExist();
@@ -68,7 +68,7 @@ window.executeShareSchedule = async function() {
 
         // ถ้าดึงมาแล้วพบว่าตารางว่างเปล่า ให้แจ้งเตือนและหยุดการแชร์
         if (!dataToShare || dataToShare.length === 0) {
-            alert(`⚠️ คุณยังไม่มีวิชาเรียนในตาราง ปี ${targetYear} เทอม ${targetSem} ครับ\nกรุณาจัดตารางเรียนก่อนนำมาแชร์นะครับ`);
+            window.showAppNotice(`⚠️ คุณยังไม่มีวิชาเรียนในตาราง ปี ${targetYear} เทอม ${targetSem} ครับ\nกรุณาจัดตารางเรียนก่อนนำมาแชร์นะครับ`);
             btn.innerHTML = originalText;
             btn.disabled = false;
             return;
@@ -91,7 +91,7 @@ window.executeShareSchedule = async function() {
 
     } catch (error) {
         console.error("Share Error:", error);
-        alert("❌ เกิดข้อผิดพลาดในการแชร์ตาราง: " + error.message);
+        window.showAppNotice("❌ เกิดข้อผิดพลาดในการแชร์ตาราง: " + error.message);
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -153,7 +153,7 @@ window.importSharedSchedule = function(jsonStr, year, sem) {
         const decodedJson = jsonStr.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
         pendingImportCourses = JSON.parse(decodedJson);
 
-        if (!pendingImportCourses || pendingImportCourses.length === 0) return alert('ตารางเรียนนี้ว่างเปล่าครับ');
+        if (!pendingImportCourses || pendingImportCourses.length === 0) return window.showAppNotice('ตารางเรียนนี้ว่างเปล่าครับ');
 
         // ตรวจสอบและสร้าง UI Modal ขึ้นมาถ้ายังไม่มี
         createPreviewModalIfNotExist();
@@ -186,7 +186,7 @@ window.importSharedSchedule = function(jsonStr, year, sem) {
 
     } catch(e) {
         console.error("Import error:", e);
-        alert('เกิดข้อผิดพลาดในการอ่านข้อมูลตารางเรียนครับ');
+        window.showAppNotice('เกิดข้อผิดพลาดในการอ่านข้อมูลตารางเรียนครับ');
     }
 };
 
@@ -254,7 +254,7 @@ window.executeImportSharedSchedule = function() {
     if (added > 0) {
         showSuccessModal('นำเข้าตารางสำเร็จ!', `ดึง ${added} รายวิชาลงตาราง ปี ${targetYear} เทอม ${targetSem} เรียบร้อยแล้ว\n(ระบบช่วยกรองออก ${skipped} วิชาเนื่องจากซ้ำหรือเวลาชน)`);
     } else {
-        alert(`❌ ไม่มีวิชาถูกนำเข้า\n(วิชาทั้งหมดในตารางนี้ คุณมีอยู่แล้วหรือเวลาเรียนชนกันครับ)`);
+        window.showAppNotice(`❌ ไม่มีวิชาถูกนำเข้า\n(วิชาทั้งหมดในตารางนี้ คุณมีอยู่แล้วหรือเวลาเรียนชนกันครับ)`);
     }
 };
 

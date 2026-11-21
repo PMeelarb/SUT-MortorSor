@@ -3,10 +3,10 @@
 // ==========================================
 // 1. ตั้งค่าการเชื่อมต่อ Supabase
 // ==========================================
-const supabaseUrl = 'https://wgeameqajwbvnvzcnxwm.supabase.co'; 
-const supabaseKey = 'sb_publishable_-boyi5cXgE9MRC4v261MnQ_j4DCiZ3Q'; 
+const { url: supabaseUrl, publishableKey: supabaseKey } = window.sutSupabaseConfig || {};
 // 🚀 แก้ไข: เปลี่ยนชื่อเป็น supabaseClient เพื่อไม่ให้ชนกับระบบ
-const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+const supabaseClient = supabaseUrl && supabaseKey && window.supabase
+    ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
 
 // ==========================================
 // ฟังก์ชันสลับหน้าต่าง (Login / Register / Forgot)
@@ -42,6 +42,7 @@ function togglePassword(inputId, iconId) {
 // 2. ระบบดึงข้อมูล สำนัก/สาขา จาก Oracle
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
+    if (!supabaseClient) return;
     const facultySelect = document.getElementById('register-faculty');
     const majorSelect = document.getElementById('register-major');
     
@@ -99,21 +100,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('form-login');
     const registerForm = document.getElementById('form-register');
     const forgotForm = document.getElementById('form-forgot');
+    if (!supabaseClient) {
+        for (const form of [loginForm, registerForm, forgotForm]) {
+            const submit = form?.querySelector('button[type="submit"]');
+            if (submit) submit.disabled = true;
+        }
+        window.showAppNotice('กรุณาตั้งค่า Frontend/supabase.local.js และลองโหลดหน้าใหม่', { title: 'ระบบบัญชียังไม่พร้อม' });
+        return;
+    }
     
-    // 🚀 ระบบเข้าสู่ระบบ (Mock Login ไปก่อน)
     if (loginForm) {
-        loginForm.addEventListener('submit', (e) => {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const inputField = document.getElementById('login-studentid');
-            let studentId = inputField.value.trim().toUpperCase();
-
-            if (!studentId) {
-                alert('กรุณากรอกรหัสนักศึกษาครับ');
-                return; 
+            const button = loginForm.querySelector('button[type="submit"]');
+            if (button.disabled) return;
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password');
+            const label = button.textContent;
+            button.disabled = true;
+            button.textContent = 'กำลังเข้าสู่ระบบ…';
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: password.value });
+                if (error || !data?.session) {
+                    window.showAppNotice(error?.code === 'email_not_confirmed'
+                        ? 'กรุณายืนยันอีเมลจากข้อความที่ Supabase ส่งให้ก่อนเข้าสู่ระบบครับ'
+                        : 'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจอีเมลและรหัสผ่านแล้วลองใหม่ครับ');
+                    return;
+                }
+                const identity = studentSessionIdentity(data.user);
+                if (!identity) {
+                    window.showAppNotice('ยืนยันบัญชีนักศึกษาไม่สำเร็จ กรุณาเข้าสู่ระบบใหม่ครับ');
+                    return;
+                }
+                localStorage.setItem('sut_student_id', identity.studentId);
+                window.location.replace('index.html');
+            } catch {
+                window.showAppNotice('ติดต่อระบบเข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่ครับ');
+            } finally {
+                password.value = '';
+                button.textContent = label;
+                button.disabled = false;
             }
-            
-            localStorage.setItem('sut_student_id', studentId);
-            window.location.href = 'index.html';
         });
     }
     
@@ -123,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             
             const submitBtn = registerForm.querySelector('button[type="submit"]');
+            if (submitBtn.disabled) return;
             const originalText = submitBtn.innerText;
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังสร้างบัญชี...';
             submitBtn.disabled = true;
@@ -131,55 +159,51 @@ document.addEventListener('DOMContentLoaded', () => {
             const firstName = document.getElementById('reg-firstname').value.trim();
             const lastName = document.getElementById('reg-lastname').value.trim();
             const email = document.getElementById('reg-email').value.trim();
-            const password = document.getElementById('reg-password').value;
+            const password = document.getElementById('reg-password');
             const faculty = document.getElementById('register-faculty').value;
             const major = document.getElementById('register-major').value;
 
+            let notice;
             try {
-                // ใช้ supabaseClient แทน supabase
+                if (!/^[A-Z0-9-]{1,32}$/.test(studentId)) {
+                    window.showAppNotice('กรุณาตรวจรูปแบบรหัสนักศึกษาแล้วลองใหม่ครับ');
+                    return;
+                }
                 const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-                    email: email,
-                    password: password,
+                    email,
+                    password: password.value,
+                    options: { data: { student_profile: {
+                        reported_student_id: studentId, first_name: firstName, last_name: lastName, faculty, major
+                    } } }
                 });
-
-                if (authError) throw authError;
-
-                const { error: profileError } = await supabaseClient
-                    .from('profiles')
-                    .insert([
-                        { 
-                            student_id: studentId,
-                            first_name: firstName,
-                            last_name: lastName,
-                            faculty: faculty,
-                            major: major 
-                        }
-                    ]);
-
-                if (profileError) throw profileError;
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'สมัครสมาชิกสำเร็จ!',
-                    text: 'ระบบกำลังพากลับไปหน้าเข้าสู่ระบบ...',
-                    timer: 2000,
-                    showConfirmButton: false
-                }).then(() => {
-                    registerForm.reset();
-                    switchAuthView('view-login');
-                });
-
-                
-                const loginStudentIdInput = document.getElementById('login-studentid');
-                if(loginStudentIdInput) loginStudentIdInput.value = studentId;
-
-            } catch (error) {
-                console.error("Signup error:", error);
-                alert(`❌ เกิดข้อผิดพลาด: ${error.message}`);
+                if (authError && !['user_already_exists', 'email_exists'].includes(authError.code)) {
+                    window.showAppNotice('สร้างบัญชีไม่สำเร็จ กรุณาตรวจอีเมลและข้อกำหนดรหัสผ่าน แล้วลองใหม่ครับ');
+                    return;
+                }
+                if (authError || authData?.user?.identities?.length === 0) {
+                    notice = 'หากมีบัญชีด้วยอีเมลนี้แล้ว ให้ตรวจอีเมลยืนยันหรือกลับไปเข้าสู่ระบบด้วยบัญชีเดิมครับ';
+                } else if (authData?.session) {
+                    const identity = studentSessionIdentity(authData.user);
+                    if (!identity) throw new Error('Missing Auth identity');
+                    localStorage.setItem('sut_student_id', identity.studentId);
+                    window.location.replace('index.html');
+                    return;
+                } else {
+                    if (!authData?.user?.id) throw new Error('Missing Auth user');
+                    notice = 'สร้างบัญชีแล้ว โปรเจกต์ Supabase นี้กำหนดให้ยืนยันอีเมล เมื่อยืนยันแล้วเข้าสู่ระบบได้เลยครับ';
+                }
+            } catch {
+                window.showAppNotice('ติดต่อระบบสมัครสมาชิกไม่สำเร็จ กรุณาลองใหม่ครับ');
+                return;
             } finally {
+                password.value = '';
                 submitBtn.innerText = originalText;
                 submitBtn.disabled = false;
             }
+            await Swal.fire({ icon: 'info', title: 'สถานะการสมัครสมาชิก', text: notice });
+            registerForm.reset();
+            document.getElementById('login-email').value = email;
+            switchAuthView('view-login');
         });
     }
     
@@ -187,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (forgotForm) {
         forgotForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            alert('ระบบกำลังอยู่ในช่วงพัฒนาครับ');
+            window.showAppNotice('ระบบกำลังอยู่ในช่วงพัฒนาครับ');
         });
     }
 });

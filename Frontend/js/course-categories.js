@@ -1,12 +1,15 @@
 // ==========================================
-// 🔍 ระบบหมวดหมู่วิชา (วิชาสาขา, เลือกเสรี, ศึกษาทั่วไป) แบบดั้งเดิมที่เสถียร 100%
+// 🔍 ระบบหมวดหมู่วิชา (วิชาสาขา, เลือกเสรี, ศึกษาทั่วไป)
+// Categories come from the program structure in Oracle. Each course lists real
+// sections of the planned term, or clearly labelled historical sections for a
+// draft timetable. Sections, days and times are never invented here.
 // ==========================================
 
 // 1. ฟังก์ชันเปิด-ปิด กล่อง Accordion
 window.toggleAccordion = function(headerElement) {
     const content = headerElement.nextElementSibling;
     const icon = headerElement.querySelector('i');
-    
+
     if (content.classList.contains('open')) {
         content.classList.remove('open');
         content.style.display = 'none';
@@ -15,241 +18,220 @@ window.toggleAccordion = function(headerElement) {
         content.classList.add('open');
         content.style.display = 'block';
         icon.style.transform = 'rotate(180deg)';
-        
-        // กระตุ้นให้ช่องค้นหาแสดงข้อมูลทันทีที่กางออก
-        const inputEl = content.querySelector('input');
-        if (inputEl) {
-            inputEl.dispatchEvent(new Event('input'));
-        }
     }
 };
 
-// 2. ฟังก์ชันโหลดและคัดกรองข้อมูลเข้า Dropdown แต่ละหมวด
-window.fetchAndSetupCourseCategories = async function() {
-    try {
-        const response = await fetch('http://localhost:3000/api/courses');
-        const result = await response.json();
-        
-        if (result.status === 'success' && result.data) {
-            let majorList = [];
-            let genEdList = [];
-            let freeList = [];
-            
-            // กรองวิชาที่ไม่มีรหัสออก ป้องกันบั๊ก
-            const validCourses = result.data.filter(c => c.COURSECODE || c.coursecode);
+const CATALOG_LISTS = [['major', 'search-major', 'courses-major'], ['genEd', 'search-gen', 'courses-gen'], ['free', 'search-free', 'courses-free']];
+const CATALOG_PAGE = 50;
+const CATALOG_SECTIONS_SHOWN = 8;
+let catalogRequest = 0;
+let catalogState = null;
 
-            validCourses.forEach(course => {
-                const code = String(course.COURSECODE || course.coursecode).trim().toUpperCase();
-                
-                // จัดหมวดหมู่วิชาตามตัวอักษรนำหน้า
-                if (code.startsWith('213') || code.startsWith('202') || code.startsWith('IST') || code.startsWith('ENG') || code.startsWith('LNG') || code.startsWith('HSS')) {
-                    genEdList.push(course);
-                } else if (code.startsWith('106') || code.startsWith('110') || code.startsWith('205') || code.startsWith('551') || code.startsWith('DGT') || code.startsWith('SCI')) {
-                    majorList.push(course);
-                } else {
-                    freeList.push(course);
-                }
-            });
+function catalogMessage(listEl, text) {
+    const message = document.createElement('div');
+    message.className = 'catalog-empty';
+    message.textContent = text;
+    listEl.replaceChildren(message);
+}
 
-            // ส่งข้อมูลลงแต่ละกล่อง
-            window.setupCourseSearchBox('search-major', 'courses-major', majorList);
-            window.setupCourseSearchBox('search-gen', 'courses-gen', genEdList);
-            window.setupCourseSearchBox('search-free', 'courses-free', freeList);
-        }
-    } catch (error) {
-        console.error('Error fetching course categories:', error);
-    }
+function catalogMeetings(group) {
+    return group.meetings.map(meeting => `${meeting.day || '?'} ${meeting.start || '?'}–${meeting.end || '?'}`).join(', ');
+}
+
+function sectionLabel(group, context) {
+    if (!group.actionable) return `กลุ่ม ${group.section || '?'} | ข้อมูลวันหรือเวลาไม่ครบ`;
+    if (group.reference) return `เวลาอ้างอิง กลุ่ม ${group.section} | ${catalogMeetings(group)} | จากปี ${group.sourceAcademicYear} เทอม ${group.sourceSemester}`;
+    return `กลุ่ม ${group.section} | ${catalogMeetings(group)} | ปี ${context.academicYear} เทอม ${context.semester}`;
+}
+
+const CATALOG_STATUS = {
+    offered: ['catalog-badge is-real', 'เปิดสอนจริง'],
+    reference: ['catalog-badge is-sim', 'จำลอง'],
+    incomplete: ['catalog-badge is-warn', 'เวลาไม่ครบ'],
+    not_offered: ['catalog-badge', 'ไม่เปิดเทอมนี้'],
+    unpublished: ['catalog-badge', 'ไม่มีข้อมูลเวลา']
 };
 
-// 3. ฟังก์ชันสร้างรายการวิชาและระบบค้นหา (Search)
-window.setupCourseSearchBox = function(inputId, listId, sourceArray) {
+function renderCatalogCourse(course, context) {
+    const item = document.createElement('div');
+    item.className = 'course-item catalog-course';
+    const head = document.createElement('div');
+    head.className = 'catalog-course-head';
+    const code = document.createElement('strong');
+    code.textContent = window.formatCourseCodeDisplay(course.courseCode);
+    const name = document.createElement('span');
+    name.className = 'catalog-course-name';
+    name.textContent = course.courseName || 'ไม่มีข้อมูลชื่อวิชา';
+    const credits = document.createElement('span');
+    credits.className = 'catalog-course-credits';
+    credits.textContent = course.credits === null ? '(ไม่มีข้อมูลหน่วยกิต)' : `(${course.credits} หน่วยกิต)`;
+    const [badgeClass, badgeText] = CATALOG_STATUS[course.status] || CATALOG_STATUS.unpublished;
+    const badge = document.createElement('span');
+    badge.className = badgeClass;
+    badge.textContent = badgeText;
+    head.append(code, name, credits, badge);
+    item.append(head);
+
+    const sections = document.createElement('div');
+    sections.className = 'catalog-sections';
+    if (!course.sections.length) {
+        const none = document.createElement('span');
+        none.className = 'catalog-none';
+        none.textContent = 'ไม่มีข้อมูลเวลาเรียนที่ตรวจสอบได้';
+        const keep = document.createElement('button');
+        keep.type = 'button';
+        keep.className = 'catalog-section is-interest';
+        keep.textContent = 'เก็บเป็นวิชาที่สนใจ';
+        keep.disabled = course.credits === null;
+        keep.addEventListener('click', () => window.addInterestedCourse(course, context));
+        sections.append(none, keep);
+    }
+    const render = limit => {
+        sections.querySelectorAll('.catalog-section:not(.is-interest), .catalog-more').forEach(node => node.remove());
+        for (const group of course.sections.slice(0, limit)) {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = `catalog-section${group.reference ? ' is-sim' : ''}`;
+            chip.textContent = sectionLabel(group, context);
+            chip.disabled = !group.actionable;
+            if (group.reference) chip.title = `จำลอง — ยังไม่ยืนยันเวลาเปิดสอนปี ${context.academicYear}`;
+            chip.addEventListener('click', () => window.addCatalogSection(course, group, chip));
+            sections.append(chip);
+        }
+        if (course.sections.length > limit) {
+            const more = document.createElement('button');
+            more.type = 'button';
+            more.className = 'catalog-more';
+            more.textContent = `ดูทั้งหมด ${course.sections.length} กลุ่ม`;
+            more.addEventListener('click', () => render(course.sections.length));
+            sections.append(more);
+        }
+    };
+    render(CATALOG_SECTIONS_SHOWN);
+    if (course.sections.some(group => group.reference)) {
+        const sim = document.createElement('div');
+        sim.className = 'catalog-sim-note';
+        sim.textContent = `จำลอง — ยังไม่ยืนยันเวลาเปิดสอนปี ${context.academicYear}`;
+        item.append(sections, sim);
+    } else {
+        item.append(sections);
+    }
+    return item;
+}
+
+// 2. ฟังก์ชันสร้างรายการวิชาและระบบค้นหา (Search)
+window.setupCourseSearchBox = function(inputId, listId, courses, context) {
     const inputEl = document.getElementById(inputId);
     const listEl = document.getElementById(listId);
-    
     if (!inputEl || !listEl) return;
-    
-    const renderList = (data) => {
-        listEl.innerHTML = ''; 
-        
-        if (!data || data.length === 0) {
-            listEl.innerHTML = '<div style="padding: 15px; text-align: center; color: #9ca3af; font-size: 14px;">ไม่พบรายวิชาที่ค้นหา</div>';
-            return;
+    const render = () => {
+        const keyword = inputEl.value.toLowerCase().replace(/\s+/g, '');
+        const matched = keyword ? courses.filter(course => course.courseCode.toLowerCase().includes(keyword)
+            || String(course.courseName || '').toLowerCase().replace(/\s+/g, '').includes(keyword)) : courses;
+        if (!matched.length) return catalogMessage(listEl, 'ไม่พบรายวิชาที่ค้นหาในหมวดหมู่นี้');
+        listEl.replaceChildren(...matched.slice(0, CATALOG_PAGE).map(course => renderCatalogCourse(course, context)));
+        if (matched.length > CATALOG_PAGE) {
+            const more = document.createElement('div');
+            more.className = 'catalog-empty';
+            more.textContent = `แสดง ${CATALOG_PAGE} จาก ${matched.length} วิชา พิมพ์รหัสหรือชื่อเพื่อค้นหาเพิ่มเติม`;
+            listEl.append(more);
         }
-
-        // โชว์แค่ 50 วิชาแรกเพื่อไม่ให้หน้าเว็บค้างตอนกางกล่อง
-        const displayData = data.slice(0, 50);
-
-        displayData.forEach(c => {
-            const code = c.COURSECODE || c.coursecode || '';
-            const name = c.COURSENAME || c.coursename || 'รายวิชา';
-            const creditStr = c.COURSEUNIT || c.courseunit || '0';
-            const section = c.SECTION || c.section || '1';
-            
-            let dayName = c.DAY_NAME || c.day_name || '-';
-            let startTime = c.START_TIME || c.start_time || '-';
-            let endTime = c.END_TIME || c.end_time || '-';
-
-            const dayMapObj = { '1':'อาทิตย์', '2':'จันทร์', '3':'อังคาร', '4':'พุธ', '5':'พฤหัสบดี', '6':'ศุกร์', '7':'เสาร์' };
-            if (dayMapObj[dayName]) dayName = dayMapObj[dayName];
-
-            if ((startTime === '-' || !startTime) && c.TIMESLOTFROM) {
-                let sH = Math.floor((c.TIMESLOTFROM - 1) * 5 / 60);
-                let eH = Math.floor((c.TIMESLOTTO - 1) * 5 / 60);
-                startTime = `${String(sH).padStart(2, '0')}:00`;
-                endTime = `${String(eH).padStart(2, '0')}:00`;
-            }
-
-            let timeDisplay = `<i class="fa-regular fa-clock"></i> ไม่ระบุเวลา`;
-            if (dayName !== '-' && dayName !== 'ไม่ระบุวัน' && startTime !== '-' && endTime !== '-') {
-                timeDisplay = `<i class="fa-regular fa-clock"></i> ${dayName} ${startTime}-${endTime} น.`;
-            }
-
-            const div = document.createElement('div');
-            div.className = 'course-item';
-            div.style.padding = '12px 15px';
-            div.style.borderBottom = '1px solid #f3f4f6';
-            div.style.cursor = 'pointer';
-            
-            div.onmouseover = () => div.style.background = '#f9fafb';
-            div.onmouseout = () => div.style.background = 'transparent';
-            
-            div.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
-                    <div style="flex: 1; min-width: 250px;">
-                        <strong style="color: #111; font-size: 14px;">${code}</strong> 
-                        <span style="color: #374151; font-size: 14px; margin-left: 5px;">${name}</span> 
-                        <span style="font-size:12px; color:#6b7280; margin-left: 5px;">(${creditStr})</span>
-                    </div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <span style="font-size:11px; background: #e5e7eb; padding: 4px 8px; border-radius: 6px; white-space: nowrap; color: #4b5563;">
-                            กลุ่ม ${section}
-                        </span>
-                        <span style="font-size:11px; color:#F05A28; background: #FFF4F0; padding: 4px 8px; border-radius: 6px; white-space: nowrap;">
-                            ${timeDisplay}
-                        </span>
-                    </div>
-                </div>
-            `;
-            
-            div.onclick = () => {
-                // เมื่อคลิกวิชา ให้ดึงเข้าตารางทันที!
-                window.addCourseFromDropdown(c, div);
-            };
-            listEl.appendChild(div);
-        });
     };
+    inputEl.oninput = render;
+    render();
+};
 
-    // โหลดลิสต์ครั้งแรก
-    renderList(sourceArray);
+// Combine overlapping requests for the same catalog; section selection still validates fresh.
+const catalogRequests = new Map();
 
-    // ทำงานเมื่อพิมพ์ช่องค้นหา
-    inputEl.addEventListener('input', (e) => {
-        const keyword = e.target.value.toLowerCase().replace(/\s+/g, '');
-        if (!keyword) {
-            renderList(sourceArray);
+// 3. โหลดรายวิชาของเทอมที่วางแผน
+window.fetchAndSetupCourseCategories = async function() {
+    const request = ++catalogRequest;
+    const context = window.getAIChatContext({ forSchedule: true });
+    const source = window.getPlanSource?.() || { mode: 'simulate' };
+    const lists = CATALOG_LISTS.map(([, , listId]) => document.getElementById(listId)).filter(Boolean);
+    if (!context.faculty || !context.major || !context.academicYear || !context.semester) {
+        lists.forEach(listEl => catalogMessage(listEl, 'รอข้อมูลสาขาจากโปรไฟล์และปีการศึกษาที่จะจัดตาราง'));
+        return;
+    }
+    lists.forEach(listEl => catalogMessage(listEl, 'กำลังค้นรายวิชาและกลุ่มเรียนจาก Oracle…'));
+    try {
+        const query = new URLSearchParams();
+        for (const [name, value] of Object.entries({ ...context, ...source })) {
+            if (value !== null && value !== undefined && value !== '') query.set(name, value);
+        }
+        const url = `${window.aiChatConfig.apiBaseUrl.replace(/\/$/, '')}/api/catalog/offerings?${query}`;
+        if (!catalogRequests.has(url)) {
+            catalogRequests.set(url, fetch(url).then(async response => {
+                const result = await response.json();
+                if (!response.ok || result?.status !== 'success') throw new Error(result?.error || 'ค้นรายวิชาไม่สำเร็จ');
+                return result;
+            }).finally(() => catalogRequests.delete(url)));
+        }
+        const result = await catalogRequests.get(url);
+        if (request !== catalogRequest) return;
+        if (!result.program) {
+            lists.forEach(listEl => catalogMessage(listEl, result.outcome === 'ambiguous_program'
+                ? 'พบหลักสูตรหลายปีใน Oracle กรุณาระบุปีหลักสูตรผ่าน AI Advisor ก่อน' : 'ไม่พบหลักสูตรของสาขาในโปรไฟล์ใน Oracle'));
             return;
         }
-        const matchedData = sourceArray.filter(c => {
-            const cleanCode = String(c.COURSECODE || c.coursecode || '').toLowerCase().replace(/\s+/g, '');
-            const cleanName = String(c.COURSENAME || c.coursename || '').toLowerCase();
-            return cleanCode.includes(keyword) || cleanName.includes(keyword);
-        });
-        renderList(matchedData);
-    });
-};
-
-// 4. ฟังก์ชันเพิ่มวิชาจาก Dropdown ลงตาราง + ออโต้เซฟ
-window.addCourseFromDropdown = function(courseData, element) {
-    const code = String(courseData.COURSECODE || courseData.coursecode || '').trim().toUpperCase();
-    const name = courseData.COURSENAME || courseData.coursename || 'รายวิชา';
-    const creditStr = courseData.COURSEUNIT || courseData.courseunit || '0';
-    const credit = parseInt(String(creditStr).split(' ')[0]) || 0;
-    
-    let dayName = courseData.DAY_NAME || courseData.day_name || '-';
-    let startTime = courseData.START_TIME || courseData.start_time || '-';
-    let endTime = courseData.END_TIME || courseData.end_time || '-';
-
-    const dayMapObj = { '1':'อาทิตย์', '2':'จันทร์', '3':'อังคาร', '4':'พุธ', '5':'พฤหัสบดี', '6':'ศุกร์', '7':'เสาร์' };
-    if (dayMapObj[dayName]) dayName = dayMapObj[dayName];
-
-    if ((startTime === '-' || !startTime) && courseData.TIMESLOTFROM) {
-        let sH = Math.floor((courseData.TIMESLOTFROM - 1) * 5 / 60);
-        let eH = Math.floor((courseData.TIMESLOTTO - 1) * 5 / 60);
-        startTime = `${String(sH).padStart(2, '0')}:00`;
-        endTime = `${String(eH).padStart(2, '0')}:00`;
-    }
-
-    const isExist = selectedCoursesData.some(c => c.code.replace(/\s+/g, '').toUpperCase().includes(code.replace(/\s+/g, '')));
-    if (isExist) return alert(`⚠️ มีวิชา ${code} อยู่ในตารางเทอมนี้แล้วครับ`);
-
-    let sHour = 0, eHour = 0;
-    let noTimeFlag = true;
-
-    if (startTime !== '-' && endTime !== '-' && dayName !== '-' && dayName !== 'ไม่ระบุวัน') {
-        sHour = parseInt(String(startTime).split(':')[0]);
-        let eHourRaw = parseInt(String(endTime).split(':')[0]);
-        let eMin = parseInt(String(endTime).split(':')[1]) || 0;
-        eHour = eMin > 0 ? eHourRaw + 1 : eHourRaw; 
-        if (!isNaN(sHour) && !isNaN(eHour)) noTimeFlag = false; 
-    }
-
-    let isOverlap = false;
-    let overlapCourseName = "";
-    if (!noTimeFlag) {
-        for (let existingCourse of selectedCoursesData) {
-            if (existingCourse.day === dayName && !existingCourse.no_time) {
-                if (sHour < existingCourse.end && eHour > existingCourse.start) {
-                    isOverlap = true; 
-                    overlapCourseName = existingCourse.code;
-                    break;
-                }
-            }
+        // The catalog resolved the curriculum year; later adds validate against the same program.
+        window.aiChatContext = { ...(window.aiChatContext || {}), faculty: context.faculty, major: context.major,
+            curriculumYear: result.program.curriculumYear };
+        const active = window.getAIChatContext({ forSchedule: true });
+        catalogState = { context: active, source };
+        for (const [category, inputId, listId] of CATALOG_LISTS) {
+            window.setupCourseSearchBox(inputId, listId, result.courses.filter(course => course.category === category), active);
         }
-    }
-
-    if (isOverlap) return alert(`⚠️ ไม่สามารถเพิ่มได้! เวลาเรียนชนกับวิชา ${overlapCourseName}`);
-
-    const uniqueId = `DROP_${code}_${Date.now()}`;
-    
-    selectedCourseIds.push(uniqueId);
-    selectedCoursesData.push({
-        id: uniqueId, 
-        code: `${code} (G.1)`, 
-        name: name, 
-        credits: credit, 
-        day: noTimeFlag ? '-' : dayName, 
-        start: noTimeFlag ? 0 : sHour, 
-        end: noTimeFlag ? 0 : eHour,
-        custom_mid_text: "-", custom_fin_text: "-", no_time: noTimeFlag 
-    });
-
-    // อัปเดตตาราง
-    updateDatabaseTimetableAndCredits();
-    
-    // ออโต้เซฟลงฐานข้อมูลทันที!
-    if (typeof window.saveSchedule === 'function') {
-        window.saveSchedule();
-    }
-
-    // เติมเอฟเฟกต์ให้รู้ว่ากดไปแล้ว
-    if (element) {
-        element.style.opacity = '0.5';
-        element.style.pointerEvents = 'none';
-        element.style.background = '#ecfdf5';
-        element.querySelector('strong').innerHTML = `<i class="fa-solid fa-check-circle" style="color: #10b981;"></i> ${code}`;
-    }
-
-    if (typeof showSuccessModal === 'function') {
-        showSuccessModal('เพิ่มวิชาสำเร็จ!', `เพิ่มวิชา ${code} ลงตารางเรียบร้อยแล้ว`);
-    } else {
-        alert(`เพิ่มวิชา ${code} ลงตารางเรียบร้อยแล้ว`);
+    } catch (error) {
+        if (request === catalogRequest) lists.forEach(listEl => catalogMessage(listEl, `${error.message} กรุณาลองใหม่`));
     }
 };
 
-// 5. สั่งให้ดึงข้อมูลวิชามาเตรียมไว้ทันทีที่โหลดหน้าเว็บเสร็จ
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        window.fetchAndSetupCourseCategories();
-    }, 1500); // หน่วงเวลา 1.5 วิ ป้องกันดึงข้อมูลชนกัน
-});
+// 4. เพิ่มกลุ่มเรียนจากรายการ: ตรวจกับ Oracle และให้ผู้ใช้ยืนยันก่อนเสมอ
+window.addCatalogSection = async function(course, group, chip) {
+    if (!catalogState || !group.actionable || chip?.disabled) return;
+    const label = chip?.textContent;
+    if (chip) {
+        chip.disabled = true;
+        chip.textContent = 'กำลังตรวจ…';
+    }
+    const added = await window.applyAICoursesList([{ courseCode: course.courseCode, classId: group.classId, section: group.section }],
+        catalogState.context, catalogState.source);
+    if (chip) {
+        chip.disabled = added;
+        chip.textContent = added ? 'เพิ่มแล้ว' : label;
+        if (added) chip.classList.add('is-added');
+    }
+    if (added && typeof window.saveSchedule === 'function') await window.saveSchedule();
+};
 
+// วิชาที่ยังไม่มีเวลาเรียนที่ตรวจสอบได้: เก็บไว้เป็นวิชาที่สนใจ ไม่วางคาบสมมติ
+window.addInterestedCourse = async function(course, context) {
+    const snapshot = JSON.stringify(window.getAIChatContext({ forSchedule: true }));
+    const owner = localStorage.getItem('sut_student_id');
+    const code = window.normalizeCourseCodeKey ? window.normalizeCourseCodeKey(course.courseCode) : course.courseCode;
+    if (selectedCoursesData.some(row => (row.courseCode || row.code.split(' (G.')[0]).replace(/\s+/g, '') === code)) {
+        window.showAppNotice(`วิชา ${code} มีอยู่ในตารางเทอมนี้แล้ว`);
+        return;
+    }
+    if (!await window.confirmAppAction(`เก็บ ${code} ${course.courseName} เป็นวิชาที่สนใจ?\nยังไม่มีเวลาเรียนที่ตรวจสอบได้ จึงไม่วางลงช่องเวลาในตาราง`)) return;
+    if (owner !== localStorage.getItem('sut_student_id') || snapshot !== JSON.stringify(window.getAIChatContext({ forSchedule: true }))
+        || selectedCoursesData.some(row => (row.courseCode || row.code.split(' (G.')[0]).replace(/\s+/g, '') === code)) return;
+    const id = `INTEREST_${code}`;
+    selectedCourseIds.push(id);
+    selectedCoursesData.push({
+        id, courseCode: code, code, section: '-', name: course.courseName, credits: course.credits,
+        day: '-', start: 0, end: 0, no_time: true, interestOnly: true, dataType: 'interest',
+        academicYear: context.academicYear, verificationStatus: 'no_verified_time',
+        custom_mid_text: '-', custom_fin_text: '-'
+    });
+    scheduleCache[`${context.yearLevel}_${context.semester}`] = { ids: [...selectedCourseIds], data: selectedCoursesData.map(row => ({ ...row })) };
+    updateDatabaseTimetableAndCredits();
+    if (typeof window.saveSchedule === 'function') window.saveSchedule();
+};
+
+// 5. โหลดใหม่เมื่อเปลี่ยนปีการศึกษา เทอม หรือแหล่งเวลาเรียน
+document.addEventListener('planterm:change', () => {
+    window.fetchAndSetupCourseCategories();
+});

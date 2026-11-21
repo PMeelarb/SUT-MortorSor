@@ -458,20 +458,6 @@ header {
     color: #111;
 }
 
-.semester-selector i {
-    cursor: pointer;
-    color: #6b7280;
-    padding: 10px;
-    border-radius: 50%;
-    transition: 0.2s;
-    font-size: 20px;
-}
-
-.semester-selector i:hover {
-    background: #f3f4f6;
-    color: var(--primary-orange);
-}
-
 /* --- Course Planning Page (Timetable) --- */
 .schedule-layout {
     display: grid;
@@ -1493,85 +1479,6 @@ header {
 /* บังคับให้ SweetAlert (ป๊อปอัพแจ้งเตือน) ทะลุมาอยู่หน้าสุดเสมอ */
 div.swal2-container {
     z-index: 100000 !important;
-}
-
-/* ===================================================
-   Responsive Design สำหรับ iPad และ โทรศัพท์มือถือ
-=================================================== */
-
-/* สำหรับ iPad และแท็บเล็ต (หน้าจอไม่เกิน 1024px) */
-@media screen and (max-width: 1024px) {
-    body {
-        font-size: 14px;
-    }
-    
-    /* ปรับตารางหรือกล่องที่เคยกว้างให้หดลง */
-    .container, .main-content, .content-area {
-        width: 100% !important;
-        padding: 15px !important;
-    }
-}
-
-/* สำหรับโทรศัพท์มือถือ (หน้าจอไม่เกิน 768px) */
-@media screen and (max-width: 768px) {
-    /* 1. บังคับเลย์เอาต์หลักที่แบ่งซ้าย-ขวา ให้ตกลงมาเรียงบน-ล่าง */
-    body > div { /* ปรับแก้ตามโครงสร้างจริงของคุณปัน */
-        display: flex !important;
-        flex-direction: column !important;
-    }
-
-    /* 2. เมนูด้านซ้าย (Sidebar) ให้เต็ม 100% ไม่ฟิกซ์ความกว้าง */
-    .sidebar, .left-menu, #sidebar {
-        width: 100% !important;
-        height: auto !important;
-        min-height: auto !important;
-        border-right: none !important;
-        border-bottom: 2px solid #e5e7eb;
-        padding: 10px !important;
-        position: relative !important;
-    }
-
-    /* 3. พื้นที่เนื้อหาหลักด้านขวา ให้กว้าง 100% */
-    .main-content, .right-content, #main {
-        width: 100% !important;
-        margin-left: 0 !important;
-        padding: 10px !important;
-        overflow-x: hidden !important; /* ป้องกันจอเลื่อนซ้ายขวา */
-    }
-
-    /* 4. การ์ดรายวิชา หรือ Grid ต่างๆ บังคับเป็น 1 คอลัมน์ */
-    .course-grid, .grid-container, .reviews-container {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 15px !important;
-    }
-
-    /* 5. กล่อง Input, ปุ่ม, Dropdown บังคับเต็ม 100% ให้กดง่ายในมือถือ */
-    input[type="text"], input[type="password"], select, button {
-        width: 100% !important;
-        box-sizing: border-box !important;
-        margin-bottom: 10px !important;
-    }
-
-    /* 6. ป๊อปอัพ (Modal) บังคับกว้าง 95% จะได้ไม่ล้นขอบจอมือถือ */
-    .modal-content, .chat-modal-content {
-        width: 95% !important;
-        margin: 10px auto !important;
-        padding: 20px !important;
-    }
-
-    /* 7. ซ่อนรูปพื้นหลังมังกร (หรือภาพตกแต่ง) ที่ทำให้จอรกเวลามองในมือถือ */
-    .bg-dragon, .decorative-img {
-        display: none !important;
-    }
-    
-    /* 8. ปรับกล่องแชท AI ให้ไม่ล้นจอ */
-    #ai-chat-box, .ai-container {
-        width: 100% !important;
-        height: 400px !important;
-        position: static !important; /* ปลดการตรึงหน้าจอ */
-        margin-top: 20px !important;
-    }
 }
 
 /* Animation สำหรับ Modal Logout */

@@ -53,7 +53,7 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     speechRecognition.onerror = function(event) {
         console.error("Speech error: ", event.error);
         if (event.error === 'not-allowed') {
-            alert('⚠️ ไม่สามารถใช้งานไมโครโฟนได้ กรุณากดอนุญาต (Allow) สิทธิ์การใช้ไมโครโฟนที่แถบ URL ด้านบนครับ');
+            window.showAppNotice('⚠️ ไม่สามารถใช้งานไมโครโฟนได้ กรุณากดอนุญาต (Allow) สิทธิ์การใช้ไมโครโฟนที่แถบ URL ด้านบนครับ');
         }
         resetMicUI();
     };
@@ -77,7 +77,7 @@ function resetMicUI() {
 
 // ผูกฟังก์ชันการทำงานเมื่อคลิกที่ปุ่มไมค์หรือวงกลมกลางจอ
 window.toggleVoiceRecognition = function() {
-    if (!speechRecognition) return alert('⚠️ เบราว์เซอร์ของคุณไม่รองรับระบบสั่งงานด้วยเสียง แนะนำให้ใช้ Google Chrome ครับ');
+    if (!speechRecognition) return window.showAppNotice('⚠️ เบราว์เซอร์ของคุณไม่รองรับระบบสั่งงานด้วยเสียง แนะนำให้ใช้ Google Chrome ครับ');
     
     if (isRecordingVoice) {
         // หากกำลังฟังอยู่แล้วกดอีกครั้ง -> สั่งหยุดฟัง และทำงานต่อที่ onend (ส่งแชท)

@@ -5,8 +5,7 @@ function drawTimetableGrid(activeCourses = []) {
     const grid = document.getElementById('timetable-grid');
     if (!grid) return;
     
-    grid.className = ''; 
-    grid.style.cssText = 'display: grid; background-color: #1f2937; border-radius: 8px; overflow: hidden; border: 1px solid #374151; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; margin-bottom: 20px;';
+    grid.className = 'timetable-live';
     grid.innerHTML = ''; 
     
     let startHour = 8;
@@ -15,31 +14,28 @@ function drawTimetableGrid(activeCourses = []) {
     if (activeCourses && activeCourses.length > 0) {
         activeCourses.forEach(course => {
             if (course.no_time) return;
-            if (course.start > 0 && course.start < startHour) startHour = course.start;
-            if (course.end > 0 && course.end > endHour) endHour = course.end;
+            if (course.start >= 0 && course.start < startHour) startHour = Math.floor(course.start);
+            if (course.end > 0 && course.end > endHour) endHour = Math.ceil(course.end);
         });
     }
 
     const totalColumns = endHour - startHour;
-    grid.style.gridTemplateColumns = `80px repeat(${totalColumns}, 1fr)`;
+    grid.style.gridTemplateColumns = `76px repeat(${totalColumns}, minmax(60px, 1fr))`;
+    grid.style.minWidth = `${76 + totalColumns * 60}px`;
 
-    const headerStyle = "background-color: #111827; color: white; padding: 12px 5px; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 1px solid #374151; border-right: 1px solid #374151; display: flex; align-items: center; justify-content: center;";
-    const dayStyle = "background-color: #111827; color: white; font-size: 13px; font-weight: 600; border-bottom: 1px solid #374151; border-right: 1px solid #374151; display: flex; align-items: center; justify-content: center;";
-    const slotStyle = "background-color: #1f2937; border-bottom: 1px solid #374151; border-right: 1px solid #374151; min-height: 55px;";
-
-    grid.insertAdjacentHTML('beforeend', `<div style="grid-row: 1; grid-column: 1; ${headerStyle}">Day/Time</div>`);
+    grid.insertAdjacentHTML('beforeend', '<div class="timetable-time" style="grid-row: 1; grid-column: 1;">วัน / เวลา</div>');
     let colIndex = 2;
     for (let i = startHour; i < endHour; i++) {
-        grid.insertAdjacentHTML('beforeend', `<div style="grid-row: 1; grid-column: ${colIndex}; ${headerStyle}">${i}.00-${i+1}.00</div>`);
+        grid.insertAdjacentHTML('beforeend', `<div class="timetable-time" style="grid-row: 1; grid-column: ${colIndex};">${formatScheduleHour(i)}–${formatScheduleHour(i + 1)}</div>`);
         colIndex++;
     }
 
     const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์'];
     days.forEach((day, index) => {
         const row = index + 2; 
-        grid.insertAdjacentHTML('beforeend', `<div style="grid-row: ${row}; grid-column: 1; ${dayStyle}">${day}</div>`);
+        grid.insertAdjacentHTML('beforeend', `<div class="timetable-day" style="grid-row: ${row}; grid-column: 1;">${day}</div>`);
         for (let c = 2; c <= colIndex - 1; c++) {
-            grid.insertAdjacentHTML('beforeend', `<div style="grid-row: ${row}; grid-column: ${c}; ${slotStyle}"></div>`);
+            grid.insertAdjacentHTML('beforeend', `<div class="timetable-slot" style="grid-row: ${row}; grid-column: ${c};"></div>`);
         }
     });
 
@@ -48,8 +44,10 @@ function drawTimetableGrid(activeCourses = []) {
             if (course.no_time) return;
 
             const dayIndex = days.indexOf(course.day) + 2; 
-            const colStart = course.start - startHour + 2; 
-            const duration = course.end - course.start;
+            const colStart = Math.floor(course.start) - startHour + 2;
+            const duration = Math.ceil(course.end) - Math.floor(course.start);
+            const leftInset = (course.start - Math.floor(course.start)) * 100 / duration;
+            const rightInset = (Math.ceil(course.end) - course.end) * 100 / duration;
 
             if (dayIndex >= 2 && colStart >= 2) {
                 const baseCode = course.code.split(' ')[0];
@@ -59,14 +57,23 @@ function drawTimetableGrid(activeCourses = []) {
 
                 const isCustom = String(course.id).startsWith('CUSTOM_') || String(course.id).startsWith('AI_') || String(course.id).startsWith('SHARED_');
                 const bgColor = isCustom ? '#ef4444' : courseColorMap[baseCode]; 
-                const displayCredit = isCustom ? 'กำหนดเอง' : `(${course.credits} หน่วย)`;
-
+                const displayCode = escapeCourseHTML(window.formatCourseCodeDisplay(course.code));
+                // Simulated rows carry their source term; show it on the slot itself.
+                const simulated = course.reference === true;
+                const sourceText = simulated ? escapeCourseHTML(`จำลอง · ${course.sourceAcademicYear ?? '?'}/${course.sourceSemester ?? '?'}`) : '';
+                const titleText = simulated
+                    ? `${displayCode} — ${escapeCourseHTML(`เวลาอ้างอิงจากปี ${course.sourceAcademicYear ?? '?'} เทอม ${course.sourceSemester ?? '?'} ยังไม่ยืนยันเวลาเปิดสอน`)}`
+                    : displayCode;
                 const courseHTML = `
-                    <div style="grid-row: ${dayIndex}; grid-column: ${colStart} / span ${duration}; background-color: ${bgColor}; color: #ffffff; cursor: pointer; border-radius: 6px; margin: 3px; padding: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; border: 1px solid rgba(255,255,255,0.1);" onclick="window.confirmRemoveCourse('${course.id}', '${window.formatCourseCodeDisplay(course.code)}')">
-                        <div style="font-weight: 600; font-size: 18px; white-space: nowrap;">${window.formatCourseCodeDisplay(course.code)}</div>
-                        <div style="font-size: 16px; opacity: 0.9; margin-top: 2px;">${course.start}.00-${course.end}.00</div>
-                    </div>`;
+                    <button type="button" class="timetable-event${simulated ? ' is-simulated' : ''}" style="grid-row: ${dayIndex}; grid-column: ${colStart} / span ${duration}; --event-color: ${bgColor}; margin-left: calc(${leftInset}% + 3px); margin-right: calc(${rightInset}% + 3px);" title="${titleText}">
+                        <strong>${displayCode}</strong>
+                        <span>${formatScheduleHour(course.start)}-${formatScheduleHour(course.end)}</span>
+                        ${simulated ? `<em class="timetable-sim-tag">${sourceText}</em>` : ''}
+                    </button>`;
                 grid.insertAdjacentHTML('beforeend', courseHTML);
+                grid.lastElementChild.addEventListener('click', () => {
+                    window.confirmRemoveCourse(course.id, window.formatCourseCodeDisplay(course.code));
+                });
             }
         });
     }

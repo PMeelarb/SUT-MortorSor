@@ -50,7 +50,8 @@ const getDay = (c) => normalizeDayName(firstValue(c, ['DAY_NAME', 'DAYNAME', 'WE
 const getStart = (c) => normalizeTime(firstValue(c, ['START_TIME', 'STARTTIME', 'TIMEFROM'], ''));
 const getEnd = (c) => normalizeTime(firstValue(c, ['END_TIME', 'ENDTIME', 'TIMETO'], ''));
 const getCredit = (c) => firstValue(c, ['COURSEUNIT', 'COURSE_UNIT', 'CREDIT', 'courseunit'], '0');
-const getSection = (c) => String(firstValue(c, ['SECTION', 'SECTION_NO', 'SECTIONNO', 'SEC', 'GROUP_NO'], '1')).trim();
+// A missing section stays empty; never default to section 1.
+const getSection = (c) => String(firstValue(c, ['SECTION', 'SECTION_NO', 'SECTIONNO', 'SEC', 'GROUP_NO'], '')).trim();
 const getMidDate = (c) => firstValue(c, ['MID_DATE', 'mid_date', 'MIDDATE'], '');
 const getMidStart = (c) => normalizeTime(firstValue(c, ['MID_START', 'mid_start'], ''));
 const getMidEnd = (c) => normalizeTime(firstValue(c, ['MID_END', 'mid_end'], ''));
@@ -82,7 +83,16 @@ function extractRows(payload) {
 }
 
 function showSuccessModal(title, desc) {
-    document.getElementById('success-alert-title').innerText = title;
-    document.getElementById('success-alert-desc').innerText = desc;
-    document.getElementById('modal-success-alert').style.display = 'flex';
+    window.showAppNotice(desc, { title, tone: 'success' });
+}
+
+function formatScheduleHour(value) {
+    const minutes = Math.round(Number(value) * 60);
+    return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+function escapeCourseHTML(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[character]));
 }

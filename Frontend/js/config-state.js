@@ -12,9 +12,9 @@ window.formatCourseCodeDisplay = function(code) {
 // ==========================================
 // 1. เชื่อมต่อฐานข้อมูล Supabase 
 // ==========================================
-const supabaseUrl = 'https://wgeameqajwbvnvzcnxwm.supabase.co';
-const supabaseKey = 'sb_publishable_-boyi5cXgE9MRC4v261MnQ_j4DCiZ3Q';
-const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+const { url: supabaseUrl, publishableKey: supabaseKey } = window.sutSupabaseConfig || {};
+const supabaseClient = supabaseUrl && supabaseKey && window.supabase
+    ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
 
 
 let selectedMajor = "";
@@ -24,4 +24,11 @@ let allCourses = [];
 let masterCourses = [];   
 let selectedCoursesData = []; 
 let scheduleCache = {}; 
+
+// AI years are explicit context. Neither year is inferred from student IDs.
+window.aiChatConfig = Object.assign({
+    apiBaseUrl: 'http://localhost:3000'
+}, window.aiChatConfig);
+window.aiChatContext = { curriculumYear: null, academicYear: null };
+window.aiAcademicProfile = { faculty: '', major: '' };
 

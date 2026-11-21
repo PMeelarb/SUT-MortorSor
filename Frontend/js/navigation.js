@@ -12,8 +12,14 @@ window.switchPage = function(pageId, menuItem) {
     const targetPage = document.getElementById(pageId);
     if (targetPage) { targetPage.style.display = 'block'; targetPage.classList.add('active'); }
     
-    document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
-    if (menuItem) menuItem.classList.add('active');
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+        item.removeAttribute('aria-current');
+    });
+    if (menuItem) {
+        menuItem.classList.add('active');
+        menuItem.setAttribute('aria-current', 'page');
+    }
     
     if (pageId === 'community-chat') loadChatRooms();
 };

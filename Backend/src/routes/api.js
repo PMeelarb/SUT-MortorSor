@@ -16,6 +16,12 @@ router.get('/timetable', courseController.getTimetable);
 // Route สำหรับแนะนำรายวิชาแบบ auto 
 router.get('/recommend', courseController.getStudyPlan);
 
+// ปีการศึกษา/ภาคเรียนที่มีกลุ่มเรียนใน Oracle
+router.get('/terms', courseController.getOfferedTerms);
+
+// รายวิชาและกลุ่มเรียนของเทอมที่วางแผน (ข้อมูลจริง + เวลาอ้างอิงที่ติดป้าย)
+router.get('/catalog/offerings', courseController.getTermCatalog);
+
 // Route สำหรับดึงข้อมูลสาขาวิชาไปแสดงที่หน้า Register
 router.get('/programs', courseController.getAllPrograms);
 

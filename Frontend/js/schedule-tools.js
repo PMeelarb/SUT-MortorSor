@@ -7,7 +7,7 @@
 window.resetTimetable = function() {
     showConfirmModal(
         'ยืนยันการล้างตาราง', 
-        `คุณแน่ใจหรือไม่ว่าต้องการล้างวิชาทั้งหมดในตารางเทอมนี้?<br><span style="color: #ef4444; font-size: 13px;">(ข้อมูลจะถูกลบออกเฉพาะบนหน้าจอ หากต้องการบันทึกถาวรต้องกดปุ่ม Save ตารางอีกครั้ง)</span>`,
+        `คุณแน่ใจหรือไม่ว่าต้องการล้างวิชาทั้งหมดในตารางเทอมนี้?\n(ข้อมูลจะถูกลบออกเฉพาะบนหน้าจอ หากต้องการบันทึกถาวรต้องกดปุ่ม Save ตารางอีกครั้ง)`,
         function() {
             // โค้ดส่วนนี้จะทำงานเมื่อผู้ใช้กดปุ่ม "ยืนยันลบ"
             
@@ -27,7 +27,7 @@ window.resetTimetable = function() {
             if(typeof showSuccessModal === 'function') {
                 showSuccessModal('ล้างตารางสำเร็จ', 'เคลียร์ข้อมูลตารางเรียนบนหน้าจอเรียบร้อยแล้วครับ');
             } else {
-                alert('ล้างข้อมูลตารางเรียนเรียบร้อยแล้วครับ');
+                window.showAppNotice('ล้างข้อมูลตารางเรียนเรียบร้อยแล้วครับ');
             }
         }
     );
@@ -39,7 +39,7 @@ window.resetTimetable = function() {
 // ==========================================
 window.downloadTimetableImage = function(btnElement) {
     const gridElement = document.getElementById('timetable-grid');
-    if(!gridElement) return alert('ไม่พบตารางเรียนในหน้าจอครับ');
+    if(!gridElement) return window.showAppNotice('ไม่พบตารางเรียนในหน้าจอครับ');
 
     // เก็บข้อความเดิมของปุ่มไว้ แล้วเปลี่ยนเป็นสถานะโหลด
     const originalContent = btnElement.innerHTML;
@@ -49,7 +49,14 @@ window.downloadTimetableImage = function(btnElement) {
     // สั่งให้ html2canvas ถ่ายภาพเฉพาะส่วนที่เป็นตาราง
     html2canvas(gridElement, {
         scale: 2, // เพิ่มสเกลให้ภาพคมชัดระดับ HD
-        backgroundColor: '#1f2937', // ตั้งสีพื้นหลังให้ตรงกับสีตาราง
+        backgroundColor: null,
+        onclone: clonedDocument => {
+            const scroll = clonedDocument.getElementById('timetable-grid')?.parentElement;
+            if (scroll) {
+                scroll.scrollLeft = 0;
+                scroll.style.overflow = 'visible';
+            }
+        },
         useCORS: true // อนุญาตให้ดึงข้อมูลข้ามโดเมน (ถ้ามี)
     }).then(canvas => {
         // แปลงภาพวาดเป็นลิงก์ข้อมูลภาพ PNG
@@ -68,7 +75,7 @@ window.downloadTimetableImage = function(btnElement) {
         btnElement.disabled = false;
     }).catch(err => {
         console.error("Error capturing image: ", err);
-        alert("เกิดข้อผิดพลาดในการบันทึกรูปภาพครับ กรุณาลองใหม่อีกครั้ง");
+        window.showAppNotice("เกิดข้อผิดพลาดในการบันทึกรูปภาพครับ กรุณาลองใหม่อีกครั้ง");
         btnElement.innerHTML = originalContent;
         btnElement.disabled = false;
     });
@@ -126,7 +133,7 @@ window.removeNewYearTab = function() {
         // ใช้หน้าต่าง Confirm แบบใหม่ที่เราสร้างขึ้นมาแทน alert ดำๆ
         showConfirmModal(
             'ยืนยันการลบชั้นปี', 
-            `คุณแน่ใจหรือไม่ว่าต้องการลบ <b>"ชั้นปีที่ ${targetYear}"</b> ออก?<br><span style="color: #ef4444; font-size: 13px;">(ข้อมูลวิชาที่จัดไว้ในชั้นปีนี้จะถูกลบทั้งหมด)</span>`,
+            `คุณแน่ใจหรือไม่ว่าต้องการลบ "ชั้นปีที่ ${targetYear}" ออก?\n(ข้อมูลวิชาที่จัดไว้ในชั้นปีนี้จะถูกลบทั้งหมด)`,
             function() {
                 // โค้ดนี้จะทำงานเมื่อผู้ใช้กด "ยืนยันลบ"
                 tabToRemove.remove();

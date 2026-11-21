@@ -17,7 +17,8 @@ async function initialize() {
         });
         console.log('✅ เชื่อมต่อ Oracle Database สำเร็จพร้อมใช้งาน!');
     } catch (err) {
-        console.error('❌ การเชื่อมต่อ Oracle ล้มเหลว:', err.message);
+        const code = /^(?:ORA|NJS|DPI)-\d+$/.test(err?.code) ? err.code : 'connection/configuration';
+        console.error('[oracle] INITIALIZATION_FAILED', code);
     }
 }
 

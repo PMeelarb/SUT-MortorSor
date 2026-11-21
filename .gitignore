@@ -3,6 +3,7 @@
 .env
 .env.*
 !.env.example
+Frontend/supabase.local.js
 
 # Dependencies
 node_modules/
@@ -22,3 +23,8 @@ build/
 
 # API key testing
 Backend/test.js
+
+# Local database administration and research notes
+Backend/sql/
+Backend/supabase/
+SUT_DATA_SOURCES.md

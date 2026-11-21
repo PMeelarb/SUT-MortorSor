@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -51,9 +50,11 @@
         }
         
     </style>
+    <link rel="stylesheet" href="interface.css">
+    <link rel="stylesheet" href="notifications.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
-<body>
+<body class="app-shell" inert>
 
    <header>
         <div class="logo">
@@ -61,14 +62,17 @@
             <span class="logo-tag">MortorSor</span>
         </div>
         
-        <div style="display: flex; gap: 15px; align-items: center;">
+        <div class="header-actions">
+            <button type="button" class="header-ai" onclick="window.toggleChatExpand()" aria-label="เปิดหรือย่อ AI Advisor" title="AI Advisor">
+                <i class="fa-solid fa-robot" aria-hidden="true"></i>
+            </button>
             <button class="profile-btn">
                 <i class="fa-regular fa-user"></i> 
-                <span id="display-student-id">B67XXXXX</span> 
+                <span id="display-student-id"></span>
             </button>
 
-            <button id="logout-btn" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 14px; font-family: 'Prompt', sans-serif; transition: all 0.3s;">
-                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            <button id="logout-btn" type="button" aria-label="ออกจากระบบ" title="ออกจากระบบ">
+                <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> <span>ออกจากระบบ</span>
             </button>
         </div>
     </header>
@@ -77,23 +81,23 @@
        <aside class="sidebar">
     
     <!-- 1. กล่องเมนูด้านบน -->
-    <div class="menu-section">
-        <div class="menu-item active" onclick="switchPage('personal-info', this)">
+    <nav class="menu-section" aria-label="เมนูหลัก">
+        <button type="button" class="menu-item active" aria-current="page" onclick="switchPage('personal-info', this)">
             <i class="fa-regular fa-user"></i> ข้อมูลส่วนตัว
-        </div>
-        <div class="menu-item" onclick="switchPage('course-plan', this)">
+        </button>
+        <button type="button" class="menu-item" onclick="switchPage('course-plan', this)">
             <i class="fa-solid fa-list-check"></i> วางแผนการเรียน
-        </div>
-        <div class="menu-item" onclick="switchPage('community-chat', this)">
-            <i class="fa-solid fa-users"></i> Community/ห้องแชทรวม
-        </div>
-        <div class="menu-item" onclick="switchPage('course-review', this)">
-            <i class="fa-solid fa-star"></i> รีวิวรายวิชาที่เคยเรียน
-        </div>
-    </div> 
+        </button>
+        <button type="button" class="menu-item" onclick="switchPage('community-chat', this)">
+            <i class="fa-solid fa-users"></i> ชุมชนและแชต
+        </button>
+        <button type="button" class="menu-item" onclick="switchPage('course-review', this)">
+            <i class="fa-solid fa-star"></i> รีวิวรายวิชา
+        </button>
+    </nav>
 
     <!-- 2. กล่อง AI ด้านล่าง -->
-    <div class="ai-chat-section" style="background: white; flex: 1; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+    <div class="ai-chat-section">
         
         <div id="voice-overlay">
             <div class="gemini-mic-orb" onclick="window.toggleVoiceRecognition()">
@@ -103,38 +107,36 @@
             <div style="margin-top: 15px; font-size: 13px; color: #9ca3af;">(คลิกที่วงกลมสีๆ เพื่อหยุดฟัง)</div>
         </div>
         
-        <div style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; font-weight: 600; font-size: 13px; color: #111; display: flex; justify-content: space-between; align-items: center;">
-            <div><i class="fa-solid fa-robot" style="color: #4b5563; margin-right: 5px;"></i> AI ช่วยวางแผนการเรียน</div>
-            <button onclick="window.toggleChatExpand()" id="btn-expand-chat" style="background: none; border: none; cursor: pointer; color: #4b5563; font-size: 14px; transition: 0.2s;" onmouseover="this.style.color='#F05A28'" onmouseout="this.style.color='#4b5563'">
+        <div class="advisor-header">
+            <div class="advisor-identity">
+                <span class="advisor-icon"><i class="fa-solid fa-robot" aria-hidden="true"></i></span>
+                <div><strong>SUT AI Advisor</strong><small>ผู้ช่วยวางแผนการเรียน</small></div>
+            </div>
+            <button type="button" onclick="window.toggleChatExpand()" id="btn-expand-chat" aria-label="ขยายหรือย่อหน้าต่างแชต" aria-expanded="false" title="ขยายหรือย่อหน้าต่างแชต">
                 <i class="fa-solid fa-expand"></i>
             </button>
         </div>
         
         <!-- พื้นที่แสดงแชท (ใส่ ID ai-chat-history) -->
-        <div id="ai-chat-history" style="flex: 1; padding: 15px; background: #FAFAFA; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;">
-            <div style="align-self: flex-start; background: #fff; border: 1px solid #e5e7eb; color: #333; padding: 15px; border-radius: 15px 15px 15px 0; font-size: 13px; max-width: 95%; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
-                <div style="font-weight: 600; margin-bottom: 10px; color: #4b5563;">
-                    <i class="fa-solid fa-robot"></i> SUT AI Advisor:
-                </div>
-                <div style="line-height: 1.6;">
-                    สวัสดีครับ ผมคือ SUT AI Advisor ที่ปรึกษาด้านการวางแผนการเรียนประจำตัวคุณครับ <br><br>
-                    วันนี้มีอะไรให้ผมช่วยวิเคราะห์ไหมครับ? ไม่ว่าจะเป็นการแนะนำวิชาที่เหมาะกับสไตล์การเรียนของคุณ, การเช็ควิชาบังคับก่อน (Prerequisite) หรือให้ผมช่วยจัดตารางเรียนให้ลงตัวที่สุด แจ้งผมได้เลยครับ 💬
-                </div>
+        <div id="ai-chat-history" role="log" aria-label="บทสนทนากับ AI Advisor">
+            <div class="advisor-welcome">
+                <span id="ai-welcome-text">สวัสดีครับ วันนี้อยากให้ช่วยวางแผนการเรียนเรื่องไหนครับ</span>
+                <p>ถามข้อมูลรายวิชา แผนหลักสูตร หรือกลุ่มเรียนที่เปิดสอนได้เลยครับ</p>
             </div>
         </div> <!-- ปิด ai-chat-history ที่ถูกต้อง -->
         
         <!-- ช่องพิมพ์ข้อความแบบมีปุ่มไมค์ -->
-        <div style="padding: 12px; background: white; border-top: 1px solid #e5e7eb;">
-            <div style="display: flex; background: #f3f4f6; border-radius: 20px; padding: 6px 15px; align-items: center; gap: 8px;">
-                <input type="text" id="ai-msg-input" placeholder="พิมพ์หรือพูดสั่งงาน..." style="border: none; background: transparent; outline: none; flex: 1; font-family: 'Prompt', sans-serif; font-size: 13px; color: #333;" onkeypress="if(event.key === 'Enter') window.sendAIMessage()">
+        <div class="advisor-input">
+            <div class="advisor-composer">
+                <input type="text" id="ai-msg-input" aria-label="ข้อความถึง AI Advisor" placeholder="ถามเรื่องการเรียน…" onkeypress="if(event.key === 'Enter') window.sendAIMessage()">
                 
                 <!-- ปุ่มไมโครโฟน -->
-                <button id="btn-mic-ai" onclick="window.toggleVoiceRecognition()" style="background: transparent; color: #6b7280; border: none; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; flex-shrink: 0;" onmouseover="this.style.color='#F05A28'" onmouseout="this.style.color='#6b7280'" title="กดเพื่อพูด">
+                <button type="button" id="btn-mic-ai" onclick="window.toggleVoiceRecognition()" aria-label="กดเพื่อพูด" title="กดเพื่อพูด">
                     <i class="fa-solid fa-microphone" style="font-size: 14px;"></i>
                 </button>
 
                 <!-- ปุ่มส่งข้อความ -->
-                <button onclick="window.sendAIMessage()" style="background: #e5e7eb; color: #4b5563; border: none; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; flex-shrink: 0;">
+                <button type="button" class="advisor-send" onclick="window.sendAIMessage()" aria-label="ส่งข้อความ" title="ส่งข้อความ">
                     <i class="fa-solid fa-arrow-up" style="font-size: 12px;"></i>
                 </button>
             </div>
@@ -146,56 +148,59 @@
         <main class="main-content">
             
           <!-- หน้าข้อมูลส่วนตัว -->
-          <div id="personal-info" class="page-view active" style="padding: 0; background: transparent; box-shadow: none;">
+          <div id="personal-info" class="page-view active">
               <div class="profile-bg-container" id="profile-bg-container">
-                  <div class="profile-overlay"></div>
+                  <div class="profile-overlay" aria-hidden="true"></div>
                   
                   <div class="profile-header-actions">
-                      <h2 style="margin: 0; color: #111; z-index: 2; position: relative; font-size: 24px;">ข้อมูลส่วนตัว</h2>
-                      <label for="bg-upload" class="edit-bg-btn">
+                      <h2>ข้อมูลส่วนตัว</h2>
+                      <button type="button" class="edit-bg-btn" onclick="document.getElementById('bg-upload').click()" aria-label="เปลี่ยนภาพพื้นหลัง" title="เปลี่ยนภาพพื้นหลัง">
                           <i class="fa-solid fa-image"></i>
                           <i class="fa-solid fa-pen" style="font-size: 10px; margin-left: -2px; margin-top: 8px;"></i>
-                      </label>
+                      </button>
                       <input type="file" id="bg-upload" accept="image/*" style="display: none;" onchange="changeProfileBackground(event)">
                   </div>
 
                   <div class="profile-avatar-section">
-                      <div class="avatar-wrapper" style="background: #e5e7eb; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 4px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: relative;">
-                          <i id="default-avatar-icon" class="fa-solid fa-user" style="font-size: 55px; color: #9ca3af; position: absolute;"></i>
+                      <div class="avatar-wrapper">
+                          <i id="default-avatar-icon" class="fa-solid fa-user"></i>
                           <img id="profile-avatar-img" src="" style="display: none; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; position: relative; z-index: 1; border: none; box-shadow: none;">
-                          <label for="avatar-upload" class="edit-avatar-btn" style="z-index: 2;">
+                          <button type="button" class="edit-avatar-btn" onclick="document.getElementById('avatar-upload').click()" aria-label="เปลี่ยนรูปโปรไฟล์" title="เปลี่ยนรูปโปรไฟล์">
                               <i class="fa-solid fa-pen"></i>
-                          </label>
+                          </button>
                           <input type="file" id="avatar-upload" accept="image/*" style="display: none;" onchange="changeProfileAvatar(event)">
                       </div>
-                      <h3 id="display-profile-name" style="margin-top: 15px; font-weight: bold; color: #333; z-index: 2;">กำลังโหลด...</h3>
+                      <h3 id="display-profile-name">กำลังโหลด...</h3>
                   </div>
+              </div>
+              <div id="profile-load-notice" hidden>
+                  <p id="profile-load-message" role="status"></p>
+              </div>
 
                   <div class="profile-glass-grid">
                       <div class="glass-column">
-                          <div class="glass-field"><label>ชื่อ-นามสกุล</label><input type="text" id="profile-fullname" readonly placeholder="ดึงข้อมูลจากระบบ..."></div>
-                          <div class="glass-field"><label>อายุ</label><input type="text" id="profile-age" placeholder="เช่น 20 ปี"></div>
-                          <div class="glass-field"><label>ชั้นปี</label><input type="text" id="profile-year-level" readonly></div>
+                          <h3><i class="fa-regular fa-id-card" aria-hidden="true"></i> ข้อมูลนักศึกษา</h3>
+                          <div class="glass-field"><label for="profile-fullname">ชื่อ-นามสกุล</label><input type="text" id="profile-fullname" readonly placeholder="ดึงข้อมูลจากระบบ..."></div>
+                          <div class="glass-field"><label for="profile-age">อายุ</label><input type="text" id="profile-age" placeholder="เช่น 20 ปี"></div>
+                          <div class="glass-field"><label for="profile-year-level">ชั้นปี</label><input type="text" id="profile-year-level" readonly></div>
                       </div>
                       <div class="glass-column">
-                          <div class="glass-field"><label>สำนักวิชา</label><input type="text" id="profile-faculty" readonly placeholder="ดึงข้อมูลจากระบบ..."></div>
-                          <div class="glass-field"><label>สาขาวิชา</label><input type="text" id="profile-major" readonly placeholder="ดึงข้อมูลจากระบบ..."></div>
+                          <h3><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> หลักสูตร</h3>
+                          <div class="glass-field"><label for="profile-faculty">สำนักวิชา</label><input type="text" id="profile-faculty" readonly placeholder="ดึงข้อมูลจากระบบ..."></div>
+                          <div class="glass-field"><label for="profile-major">สาขาวิชา</label><input type="text" id="profile-major" readonly placeholder="ดึงข้อมูลจากระบบ..."></div>
                       </div>
-                      <div class="glass-divider"></div>
                       <div class="glass-column">
-                          <div class="glass-field"><label>ช่วงเวลาว่าง</label><input type="text" id="profile-freetime" placeholder="-"></div>
-                          <div class="glass-field"><label>บุคลิกภาพ MBTI</label><input type="text" id="profile-mbti" placeholder="-"></div>
-                          <div class="glass-field"><label>สไตล์การเรียน</label><input type="text" id="profile-learning-style" placeholder="-"></div>
-                          <div class="glass-field"><label>Social Media</label><input type="text" id="profile-social" placeholder="IG : -"></div>
+                          <h3><i class="fa-solid fa-sliders" aria-hidden="true"></i> ข้อมูลเพิ่มเติม</h3>
+                          <div class="glass-field"><label for="profile-freetime">ช่วงเวลาว่าง</label><input type="text" id="profile-freetime" placeholder="-"></div>
+                          <div class="glass-field"><label for="profile-mbti">บุคลิกภาพ MBTI</label><input type="text" id="profile-mbti" placeholder="-"></div>
+                          <div class="glass-field"><label for="profile-learning-style">สไตล์การเรียน</label><input type="text" id="profile-learning-style" placeholder="-"></div>
+                          <div class="glass-field"><label for="profile-social">Social Media</label><input type="text" id="profile-social" placeholder="IG : -"></div>
                       </div>
                   </div>
                   
-       <div style="position: relative; z-index: 2; display: flex; justify-content: flex-end; width: 100%; margin-top: 20px; padding-right: 40px; padding-bottom: 40px; box-sizing: border-box;">
-    <button id="save-profile-btn" style="background: #eab308; color: white; border: none; padding: 12px 45px; border-radius: 30px; font-family: 'Prompt', sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(234, 179, 8, 0.4); transition: 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 20px rgba(234, 179, 8, 0.6)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(234, 179, 8, 0.4)';">
-        <i class="fa-solid fa-check"></i> เสร็จสิ้น
-    </button>
-</div>
-              </div>
+                  <div class="profile-actions">
+                      <button type="button" id="save-profile-btn" class="primary-button"><i class="fa-solid fa-check"></i> บันทึกข้อมูล</button>
+                  </div>
           </div>
 
           <!-- หน้าวางแผนการเรียน -->
@@ -221,47 +226,31 @@
              
 
               <div class="semester-selector">
-                  <i class="fa-solid fa-chevron-left" onclick="changeSemester(-1)"></i>
+                  <button type="button" onclick="changeSemester(-1)" aria-label="เทอมก่อนหน้า"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
                   <span id="semester-text">เทอมที่ 1</span>
-                  <i class="fa-solid fa-chevron-right" onclick="changeSemester(1)"></i>
+                  <button type="button" onclick="changeSemester(1)" aria-label="เทอมถัดไป"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
               </div>
 
-              <div class="timetable" id="timetable-grid" style="border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden; background: white; margin-bottom: 15px;">
-                  <div id="timetable-header-row" style="display: flex; background: #9ca3af; color: white; font-weight: 600; font-size: 12px; border-bottom: 1px solid #d1d5db;">
-                      <div style="width: 100px; flex-shrink: 0; padding: 12px 5px; text-align: center; border-right: 1px solid #d1d5db; background: #6b7280;">Day/Time</div>
-                      <div style="flex: 1; text-align: center; padding: 12px 5px; border-right: 1px solid #d1d5db;">8.00-9.00</div>
-                      <div style="flex: 1; text-align: center; padding: 12px 5px; border-right: 1px solid #d1d5db;">9.00-10.00</div>
-                      <div style="flex: 1; text-align: center; padding: 12px 5px; border-right: 1px solid #d1d5db;">10.00-11.00</div>
-                      <div style="flex: 1; text-align: center; padding: 12px 5px; border-right: 1px solid #d1d5db;">11.00-12.00</div>
-                      <div style="flex: 1; text-align: center; padding: 12px 5px; border-right: 1px solid #d1d5db;">12.00-13.00</div>
-                      <div style="flex: 1; text-align: center; padding: 12px 5px; border-right: 1px solid #d1d5db;">13.00-14.00</div>
-                      <div style="flex: 1; text-align: center; padding: 12px 5px; border-right: 1px solid #d1d5db;">14.00-15.00</div>
-                      <div style="flex: 1; text-align: center; padding: 12px 5px; border-right: 1px solid #d1d5db;">15.00-16.00</div>
-                      <div style="flex: 1; text-align: center; padding: 12px 5px; border-right: 1px solid #d1d5db;">16.00-17.00</div>
-                      <div style="flex: 1; text-align: center; padding: 12px 5px;">17.00-18.00</div>
-                  </div>
-                  
-                  <div style="display: flex; flex-direction: column;">
-                      <div style="display: flex; border-bottom: 1px solid #e5e7eb; min-height: 60px; position: relative;" id="row-MON"><div style="width: 100px; flex-shrink: 0; background: #6b7280; color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; border-right: 1px solid #d1d5db; z-index: 2;">จันทร์</div><div style="flex: 1; display: flex; background: repeating-linear-gradient(to right, transparent, transparent calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10));"></div></div>
-                      <div style="display: flex; border-bottom: 1px solid #e5e7eb; min-height: 60px; position: relative;" id="row-TUE"><div style="width: 100px; flex-shrink: 0; background: #6b7280; color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; border-right: 1px solid #d1d5db; z-index: 2;">อังคาร</div><div style="flex: 1; display: flex; background: repeating-linear-gradient(to right, transparent, transparent calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10));"></div></div>
-                      <div style="display: flex; border-bottom: 1px solid #e5e7eb; min-height: 60px; position: relative;" id="row-WED"><div style="width: 100px; flex-shrink: 0; background: #6b7280; color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; border-right: 1px solid #d1d5db; z-index: 2;">พุธ</div><div style="flex: 1; display: flex; background: repeating-linear-gradient(to right, transparent, transparent calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10));"></div></div>
-                      <div style="display: flex; border-bottom: 1px solid #e5e7eb; min-height: 60px; position: relative;" id="row-THU"><div style="width: 100px; flex-shrink: 0; background: #6b7280; color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; border-right: 1px solid #d1d5db; z-index: 2;">พฤหัสบดี</div><div style="flex: 1; display: flex; background: repeating-linear-gradient(to right, transparent, transparent calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10));"></div></div>
-                      <div style="display: flex; border-bottom: 1px solid #e5e7eb; min-height: 60px; position: relative;" id="row-FRI"><div style="width: 100px; flex-shrink: 0; background: #6b7280; color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; border-right: 1px solid #d1d5db; z-index: 2;">ศุกร์</div><div style="flex: 1; display: flex; background: repeating-linear-gradient(to right, transparent, transparent calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10));"></div></div>
-                      <div style="display: flex; border-bottom: 1px solid #e5e7eb; min-height: 60px; position: relative;" id="row-SAT"><div style="width: 100px; flex-shrink: 0; background: #6b7280; color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; border-right: 1px solid #d1d5db; z-index: 2;">เสาร์</div><div style="flex: 1; display: flex; background: repeating-linear-gradient(to right, transparent, transparent calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10));"></div></div>
-                      <div style="display: flex; border-bottom: 1px solid #e5e7eb; min-height: 60px; position: relative;" id="row-SUN"><div style="width: 100px; flex-shrink: 0; background: #6b7280; color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; border-right: 1px solid #d1d5db; z-index: 2;">อาทิตย์</div><div style="flex: 1; display: flex; background: repeating-linear-gradient(to right, transparent, transparent calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10 - 1px), #f3f4f6 calc(100% / 10));"></div></div>
+              <!-- ปีการศึกษาเป้าหมายและแหล่งข้อมูลเวลาเรียน (state กลางใน js/plan-term.js) -->
+              <section id="plan-term-controls" class="plan-term-controls" aria-label="เลือกข้อมูลสำหรับจัดตารางเรียน"></section>
+              <div id="plan-sim-notice" class="plan-sim-notice" role="status" hidden></div>
+
+              <div class="timetable-scroll" role="region" aria-label="ตารางเรียน" tabindex="0">
+                  <div id="timetable-grid" class="timetable-placeholder">
+                      <span role="status">กำลังโหลดตารางเรียน…</span>
                   </div>
               </div>
 
                             <!-- กลุ่มปุ่มจัดการตาราง (รีเซ็ต & บันทึกรูปภาพ) -->
             <!-- แถบจัดการตารางและสรุปหน่วยกิต (รวมไว้บรรทัดเดียวกัน) -->
-<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 20px;">
+<div class="schedule-actions">
    <!-- ฝั่งซ้าย: ข้อความรวมหน่วยกิต -->
 <div id="total-credits-text" style="font-weight: bold; font-size: 16px; color: #111827;">
     รวม 0 หน่วยกิต
 </div>
 
     <!-- ฝั่งขวา: กลุ่มปุ่มจัดการตาราง -->
-    <div style="display: flex; gap: 10px;">
+    <div class="schedule-buttons">
         <button onclick="resetTimetable()" style="background: #ef4444; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-family: 'Prompt'; font-size: 14px; font-weight: 500; transition: 0.2s; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
             <i class="fa-solid fa-rotate-right"></i> ล้างตาราง
         </button>
@@ -277,7 +266,7 @@
 </div>
 
               <div id="search-and-controls" style="margin-bottom: 30px;">
-                  <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                  <div class="schedule-tools">
                       <button id="auto-plan-btn" style="flex: 1; background: #10b981; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: 'Prompt'; font-size: 15px; transition: 0.2s; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
                         <i class="fa-solid fa-bolt"></i> จัดตารางเรียนแบบเร่งด่วน (สำหรับเทอมนี้)
                     </button>
@@ -407,7 +396,7 @@
               <div id="review-main-page">
                   <h2 style="text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 30px; color: #111;">รีวิวรายวิชา</h2>
                   <div style="display: flex; justify-content: center; margin-bottom: 40px;">
-                      <div style="position: relative; width: 60%; max-width: 600px;">
+                      <div class="review-search-wrap">
                           <input type="text" id="review-search" placeholder="ค้นหารหัสวิชา หรือ ชื่อวิชา..." style="width: 100%; padding: 15px 25px; border-radius: 30px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); font-size: 16px; outline: none;">
                           <i class="fa-solid fa-magnifying-glass" style="position: absolute; right: 25px; top: 18px; color: #6b7280; font-size: 18px;"></i>
                       </div>
@@ -419,7 +408,7 @@
               </div>
 
               <div id="review-detail-page" style="display: none;">
-                  <div style="display: flex; align-items: center; margin-bottom: 40px; position: relative;">
+                  <div class="review-detail-header">
                       <button id="back-to-reviews" style="background: white; border: none; width: 40px; height: 40px; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.1); cursor: pointer; font-size: 18px; transition: 0.2s;"><i class="fa-solid fa-arrow-left"></i></button>
                       <h2 id="review-course-title" style="flex: 1; text-align: center; font-size: 26px; font-weight: 700; margin: 0;">รายวิชา</h2>
                       <button id="btn-open-write-review" style="position: absolute; right: 0; background: #1f2937; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-family: 'Prompt';"><i class="fa-solid fa-pen"></i> เขียนรีวิววิชานี้</button>
@@ -514,7 +503,7 @@
         </h3>
 
         <!-- 🛑 เปิดกล่อง Main Flex Row (ครอบทั้งซ้ายและขวา) -->
-        <div style="display: flex; gap: 30px; flex: 1; overflow: hidden; margin-bottom: 20px;">
+        <div class="custom-course-columns" style="display: flex; gap: 30px; flex: 1; overflow: hidden; margin-bottom: 20px;">
             
             <!-- ✅ ฝั่งซ้าย: ค้นหารายวิชา -->
             <div style="flex: 1; display: flex; flex-direction: column;">
@@ -528,7 +517,7 @@
             </div>
 
             <!-- ✅ ฝั่งขวา: กำหนดเอง -->
-            <div style="flex: 1.2; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px;">
+            <div class="custom-course-fields" style="flex: 1.2; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px;">
                 <div style="font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
                     <i class="fa-solid fa-pen-to-square" style="color: #10b981;"></i> กำหนดข้อมูลวิชา
                 </div>
@@ -651,60 +640,29 @@
         </div>
     </div>
 
-    <!-- Modal แจ้งเตือนสำเร็จ (ใช้ร่วมกันทั่วแอป) -->
-    <div id="modal-success-alert" class="chat-modal" style="display: none; z-index: 2000; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
-        <div class="chat-modal-content" style="background: white; max-width: 320px; width: 90%; text-align: center; padding: 40px 30px; border-radius: 16px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.15); position: relative;">
-            <div style="width: 70px; height: 70px; background: #ecfdf5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
-                <i class="fa-solid fa-check" style="font-size: 35px; color: #10b981;"></i>
-            </div>
-            <h3 id="success-alert-title" style="margin-top: 0; margin-bottom: 10px; color: #111; font-size: 22px;">บันทึกสำเร็จ!</h3>
-            <p id="success-alert-desc" style="color: #6b7280; font-size: 14px; margin-bottom: 25px;">ทำรายการเรียบร้อยแล้ว</p>
-            <button onclick="document.getElementById('modal-success-alert').style.display='none'" style="background: #10b981; color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 15px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 600; width: 100%; transition: 0.2s; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);">ตกลง</button>
-        </div>
-    </div>
-
-    <!-- Modal ยืนยันการออกจากระบบ -->
-<div id="modal-logout-confirm" class="chat-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10050; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
-    <div class="modal-content" style="background: white; width: 90%; max-width: 400px; border-radius: 20px; padding: 35px 30px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.25); animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-        
-        <div style="width: 80px; height: 80px; background: #fff5f5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; box-shadow: 0 0 0 10px #fef2f2;">
-            <i class="fa-solid fa-right-from-bracket" style="font-size: 35px; color: #F05A28; transform: translateX(3px);"></i>
-        </div>
-        
-        <h3 style="margin: 0 0 10px 0; color: #111827; font-size: 22px; font-weight: 700;">ออกจากระบบ?</h3>
-        <p style="color: #6b7280; font-size: 15px; margin-bottom: 30px; line-height: 1.5;">
-            คุณกำลังจะออกจากระบบ SUT MortorSor<br>ข้อมูลตารางเรียนที่ยังไม่ได้บันทึกอาจสูญหาย
-        </p>
-        
-        <div style="display: flex; gap: 12px;">
-            <button onclick="document.getElementById('modal-logout-confirm').style.display='none'" style="flex: 1; background: #f3f4f6; color: #4b5563; border: none; padding: 14px; border-radius: 12px; font-weight: 600; font-size: 15px; cursor: pointer; font-family: 'Prompt'; transition: all 0.2s ease;" onmouseover="this.style.background='#e5e7eb'; this.style.color='#1f2937';" onmouseout="this.style.background='#f3f4f6'; this.style.color='#4b5563';">
-                ยกเลิก
-            </button>
-            <button onclick="executeLogout()" style="flex: 1; background: #F05A28; color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 600; font-size: 15px; cursor: pointer; font-family: 'Prompt'; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(240, 90, 40, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(240, 90, 40, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(240, 90, 40, 0.3)';">
-                ออกจากระบบ
-            </button>
-        </div>
-    </div>
-</div>
-
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.local.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script src="js/config-state.js"></script>
+    <script src="js/student-session.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/profile-session.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/plan-term.js"></script>
     <script src="js/initialization.js"></script>
     <script src="js/navigation.js"></script>
     <script src="js/course-search.js"></script>
     <script src="js/timetable.js"></script>
     <script src="js/auto-recommend.js"></script>
     <script src="js/ai-chat.js"></script>
+    <script src="js/ai-schedule.js"></script>
     <script src="js/course-cart.js"></script>
     <script src="js/schedule-storage.js"></script>
     <script src="js/custom-course.js"></script>
     <script src="js/schedule-import.js"></script>
     <script src="js/review.js"></script>
-    <script src="js/profile-session.js"></script>
     <script src="js/community-core.js"></script>
     <script src="js/community-rooms.js"></script>
     <script src="js/profile-images.js"></script>

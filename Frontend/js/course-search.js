@@ -105,5 +105,6 @@ function updateDatabaseTimetableAndCredits() {
     if (tcText) tcText.innerText = `รวม ${totalCredits} หน่วยกิต`;
     drawTimetableGrid(selectedCoursesData);
     updateSelectedCoursesCart();
+    if (typeof window.refreshPlanNotice === 'function') window.refreshPlanNotice();
 }
 

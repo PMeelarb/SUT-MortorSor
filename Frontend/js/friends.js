@@ -33,7 +33,7 @@ window.handleFriendRequest = async function(requesterId, newStatus) {
         
     } catch (err) {
         console.error("Friend request error: ", err);
-        alert('เกิดข้อผิดพลาดในการจัดการคำขอ: ' + err.message);
+        window.showAppNotice('เกิดข้อผิดพลาดในการจัดการคำขอ: ' + err.message);
     }
 };
 
@@ -75,34 +75,30 @@ window.inviteFriendToGroup = async function() {
             });
         }
 
-        const { data: profiles } = await supabaseClient
-            .from('profiles')
+        const { data: profiles, error: directoryError } = await supabaseClient
+            .from('profile_directory')
             .select('student_id, first_name, last_name')
             .in('student_id', friendIds);
 
-        let profileMap = {};
-        if (profiles) {
-            profiles.forEach(p => {
-                profileMap[p.student_id] = `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'ไม่ระบุชื่อ';
-            });
-        }
+        if (directoryError) throw directoryError;
+        const profileMap = new Map(profiles.map(p => [p.student_id, `${p.first_name || ''} ${p.last_name || ''}`.trim()]));
 
         let htmlContent = '<div style="max-height: 300px; overflow-y: auto; text-align: left; padding: 5px;">';
         
-        friendIds.forEach(fId => {
-            const fName = profileMap[fId] || 'ไม่ระบุชื่อ';
+        friendIds.forEach((fId, index) => {
+            const fName = profileMap.get(fId) || 'ไม่ระบุชื่อ';
             htmlContent += `
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 10px; border-bottom: 1px solid #e5e7eb; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='transparent'">
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <div style="width: 40px; height: 40px; background: #dbeafe; color: #2563eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px;">
-                            ${fId.substring(0, 1)}
+                            ${escapeCourseHTML(fId.substring(0, 1))}
                         </div>
                         <div>
-                            <div style="font-weight: 600; font-size: 14px; color: #111;">${fId}</div>
-                            <div style="font-size: 12px; color: #6b7280;">${fName}</div>
+                            <div style="font-weight: 600; font-size: 14px; color: #111;">${escapeCourseHTML(fId)}</div>
+                            <div style="font-size: 12px; color: #6b7280;">${escapeCourseHTML(fName)}</div>
                         </div>
                     </div>
-                    <button onclick="confirmInviteToGroup('${fId}')" style="background: #10b981; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Prompt'; transition: 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <button data-friend-index="${index}" style="background: #10b981; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Prompt'; transition: 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                         <i class="fa-solid fa-plus"></i> เชิญ
                     </button>
                 </div>
@@ -113,6 +109,12 @@ window.inviteFriendToGroup = async function() {
         Swal.fire({
             title: '<span style="font-size: 20px;">เลือกเพื่อนเพื่อเชิญเข้ากลุ่ม</span>',
             html: htmlContent,
+            didOpen: popup => {
+                popup.querySelectorAll('[data-friend-index]').forEach(button => {
+                    const friendId = friendIds[Number(button.dataset.friendIndex)];
+                    button.addEventListener('click', () => confirmInviteToGroup(friendId));
+                });
+            },
             showConfirmButton: false,
             showCloseButton: true,
             width: '450px',

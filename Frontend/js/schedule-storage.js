@@ -4,7 +4,10 @@
 
 window.saveSchedule = async function() {
     const studentId = localStorage.getItem('sut_student_id');
-    if (!studentId) return alert('กรุณาเข้าสู่ระบบก่อนครับ');
+    if (!studentId) {
+        window.showAppNotice('กรุณาเข้าสู่ระบบก่อนครับ');
+        return false;
+    }
     
     // 🎯 ดึงปีและเทอมจากหน้าจอ ณ ปัจจุบันโดยตรง (รับประกันไม่เพี้ยน)
     let targetYear = 1, targetSem = 1;
@@ -37,11 +40,13 @@ window.saveSchedule = async function() {
         if(typeof showSuccessModal === 'function') {
             showSuccessModal('บันทึกตารางเรียนสำเร็จ!', `จัดเก็บตารางเรียนของ ปี ${targetYear} เทอม ${targetSem} เรียบร้อยแล้ว`);
         } else {
-            alert(`บันทึกตารางเรียนของ ปี ${targetYear} เทอม ${targetSem} สำเร็จ!`);
+            window.showAppNotice(`บันทึกตารางเรียนของ ปี ${targetYear} เทอม ${targetSem} สำเร็จ!`);
         }
-    } catch (error) { 
-        console.error("Save Error:", error); 
-        alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+        return true;
+    } catch (error) {
+        console.error("Save Error:", error);
+        window.showAppNotice('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+        return false;
     }
 };
 

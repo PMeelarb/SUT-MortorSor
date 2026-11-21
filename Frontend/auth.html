@@ -6,13 +6,20 @@
     <title>SUT MortorSor | Authentication</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="auth.css">
+    <link rel="stylesheet" href="interface.css">
+    <link rel="stylesheet" href="notifications.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body>
+<body class="auth-shell">
 
     <div class="auth-wrapper">
+        <div class="auth-showcase" aria-hidden="true">
+            <div class="auth-preview">
+                <div class="auth-preview-bar"><i class="fa-regular fa-calendar"></i><span></span></div>
+                <div class="auth-preview-grid"><span></span><span></span><span></span><span></span></div>
+            </div>
+        </div>
         <div class="auth-card">
             
             <div class="auth-logo">
@@ -29,10 +36,10 @@
                 
                 <form id="form-login">
                     <div class="form-group">
-                        <label>รหัสนักศึกษา</label>
+                        <label for="login-email">อีเมลที่ใช้สมัคร</label>
                         <div class="input-with-icon">
-                            <i class="fa-regular fa-id-badge"></i>
-                            <input type="text" id="login-studentid" placeholder="เช่น B67XXXXX" required>
+                            <i class="fa-regular fa-envelope"></i>
+                            <input type="email" id="login-email" placeholder="อีเมลมหาวิทยาลัยหรืออีเมลส่วนตัว" autocomplete="username" required>
                         </div>
                     </div>
                     
@@ -42,24 +49,21 @@
                             <!-- ไอคอนแม่กุญแจ (ซ้าย) -->
                             <i class="fa-solid fa-lock"></i>
                             
-                            <input type="password" id="login-password" placeholder="••••••••" required style="padding-right: 40px;">
+                            <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required style="padding-right: 40px;">
                             
                             <!-- ไอคอนเปิด/ปิดตา (บังคับขวา) -->
                             <i class="fa-regular fa-eye" id="toggle-login-password" onclick="togglePassword('login-password', 'toggle-login-password')" style="position: absolute; right: 15px !important; left: auto !important; top: 50%; transform: translateY(-50%); cursor: pointer; color: #9ca3af; transition: 0.2s; z-index: 10;" onmouseover="this.style.color='#F05A28'" onmouseout="this.style.color='#9ca3af'"></i>
                         </div>
                     </div>
                     <div class="auth-options">
-                        <label class="remember-me">
-                            <input type="checkbox"> จำฉันไว้ในระบบ
-                        </label>
-                        <span class="text-link" onclick="switchAuthView('view-forgot')">ลืมรหัสผ่าน?</span>
+                        <button type="button" class="text-link" onclick="switchAuthView('view-forgot')">ลืมรหัสผ่าน?</button>
                     </div>
 
                     <button type="submit" class="auth-btn">เข้าสู่ระบบ</button>
                 </form>
                 
                 <div class="auth-footer">
-                    ยังไม่มีบัญชีใช่ไหม? <span class="text-link highlight" onclick="switchAuthView('view-register')">สมัครสมาชิกเลย</span>
+                    ยังไม่มีบัญชีใช่ไหม? <button type="button" class="text-link highlight" onclick="switchAuthView('view-register')">สมัครสมาชิกเลย</button>
                 </div>
             </div>
 
@@ -145,7 +149,7 @@
                 </form>
                 
                 <div class="auth-footer">
-                    มีบัญชีอยู่แล้ว? <span class="text-link highlight" onclick="switchAuthView('view-login')">เข้าสู่ระบบ</span>
+                    มีบัญชีอยู่แล้ว? <button type="button" class="text-link highlight" onclick="switchAuthView('view-login')">เข้าสู่ระบบ</button>
                 </div>
             </div>
 
@@ -168,7 +172,7 @@
                 </form>
                 
                 <div class="auth-footer mt-4">
-                    <span class="text-link" onclick="switchAuthView('view-login')"><i class="fa-solid fa-arrow-left"></i> กลับไปหน้าเข้าสู่ระบบ</span>
+                    <button type="button" class="text-link" onclick="switchAuthView('view-login')"><i class="fa-solid fa-arrow-left"></i> กลับไปหน้าเข้าสู่ระบบ</button>
                 </div>
             </div>
 
@@ -177,6 +181,9 @@
 
     <!-- ลิงก์ไฟล์ JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.local.js"></script>
+    <script src="js/student-session.js"></script>
+    <script src="js/notifications.js"></script>
     <script src="auth.js"></script>
 </body>
 </html>

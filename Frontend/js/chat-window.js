@@ -3,10 +3,12 @@
 // ==========================================
 window.toggleChatExpand = function() {
     const chatSection = document.querySelector('.ai-chat-section');
+    const expandButton = document.getElementById('btn-expand-chat');
     const expandIcon = document.querySelector('#btn-expand-chat i');
     if(!chatSection) return;
 
     chatSection.classList.toggle('expanded');
+    expandButton?.setAttribute('aria-expanded', String(chatSection.classList.contains('expanded')));
     
     if (chatSection.classList.contains('expanded')) {
         expandIcon.classList.replace('fa-expand', 'fa-compress');
@@ -31,14 +33,13 @@ window.toggleChatExpand = function() {
 
 function setupDraggableChatWindow() {
     const chatBox = document.querySelector('.ai-chat-section');
-    const header = chatBox ? chatBox.querySelector('div:first-child') : null; 
+    const header = chatBox?.querySelector('.advisor-header');
     if(!chatBox || !header) return;
 
     // ป้องกันการสร้าง Resizer ซ้ำถ้ากดรีเฟรช
     if (chatBox.querySelector('.chat-resizer')) return;
 
     // 1. ระบบจับลากย้ายหน้าต่าง (Drag)
-    header.style.cursor = 'move';
     header.addEventListener('mousedown', function(e) {
         if(!chatBox.classList.contains('expanded')) return;
         if(e.target.closest('button')) return; // ถอยถ้าผู้ใช้กำลังกดปุ่มย่อ/ขยาย

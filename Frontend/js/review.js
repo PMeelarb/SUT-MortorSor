@@ -27,7 +27,7 @@ function initReviewSystem() {
             }, {});
             for (const code in grouped) courseRatings[code] = Math.round(grouped[code].sum / grouped[code].count);
         }
-        fetchCoursesFromAPI('');
+        fetchCoursesFromAPI(searchInput?.value || '');
     }
 
     const generateStars = (score) => {
@@ -39,13 +39,12 @@ function initReviewSystem() {
   async function fetchCoursesFromAPI(keyword = '') {
         if (!reviewGrid) return;
         try {
-            const response = await fetch('http://localhost:3000/api/courses');
-            const result = await response.json();
+            const courses = await getMasterCourseRows();
             reviewGrid.innerHTML = '';
 
-            if (result.status === 'success' && result.data.length > 0) {
+            if (courses.length > 0) {
                 const cleanKeyword = keyword.replace(/\s+/g, '').toLowerCase();
-                const matchedData = result.data.filter(c => {
+                const matchedData = courses.filter(c => {
                     
                     if (!c.COURSENAME || String(c.COURSENAME).trim().toLowerCase() === 'null') return false;
 
@@ -93,15 +92,16 @@ function initReviewSystem() {
 
     async function openCourseDetail(code, name) {
         window.deleteMyReview = async function(courseCode) {
-        if(!confirm('คุณต้องการลบรีวิวนี้ใช่หรือไม่?')) return;
         const myId = localStorage.getItem('sut_student_id');
+        if (!await window.confirmAppAction('ต้องการลบรีวิวนี้ใช่ไหมครับ', { title: 'ลบรีวิว', confirmText: 'ลบรีวิว', tone: 'danger' })) return;
+        if (myId !== localStorage.getItem('sut_student_id')) return;
         try {
             await supabaseClient.from('course_reviews').delete().eq('course_code', courseCode).eq('student_id', myId);
             openCourseDetail(currentReviewCode, currentReviewName); // โหลดหน้าต่างรีวิวใหม่
             fetchAllRatings(); // อัปเดตดาวหน้าแรก
             showSuccessModal('สำเร็จ!', 'ลบรีวิวของคุณเรียบร้อยแล้วครับ');
         } catch (err) {
-            alert('เกิดข้อผิดพลาดในการลบรีวิว: ' + err.message);
+            window.showAppNotice('เกิดข้อผิดพลาดในการลบรีวิว: ' + err.message);
         }
     };
         currentReviewCode = code; currentReviewName = name;
@@ -177,9 +177,9 @@ function initReviewSystem() {
     const submitReviewBtn = document.getElementById('submit-review-btn');
     if(submitReviewBtn) {
         submitReviewBtn.onclick = async () => {
-            if (selectedRating === 0) return alert('กรุณาให้คะแนนดาววิชานี้ก่อนครับ ⭐');
+            if (selectedRating === 0) return window.showAppNotice('กรุณาให้คะแนนดาววิชานี้ก่อนครับ ⭐');
             const text = document.getElementById('review-text-input').value.trim();
-            if (!text) return alert('กรุณาเขียนรายละเอียดการรีวิวครับ');
+            if (!text) return window.showAppNotice('กรุณาเขียนรายละเอียดการรีวิวครับ');
 
             const studentId = localStorage.getItem('sut_student_id');
             const originalText = submitReviewBtn.innerHTML;
@@ -193,7 +193,7 @@ function initReviewSystem() {
                 showSuccessModal('บันทึกสำเร็จ!', 'ขอบคุณที่ร่วมแบ่งปันรีวิวรายวิชานะครับ');
                 openCourseDetail(currentReviewCode, currentReviewName);
                 if (typeof fetchAllRatings === 'function') fetchAllRatings(); 
-            } catch (err) { alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message); } 
+            } catch (err) { window.showAppNotice('เกิดข้อผิดพลาดในการบันทึก: ' + err.message); }
             finally { submitReviewBtn.innerHTML = originalText; submitReviewBtn.disabled = false; }
         };
     }

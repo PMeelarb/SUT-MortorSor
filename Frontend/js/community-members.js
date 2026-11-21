@@ -44,6 +44,8 @@ window.openGroupInfo = async function() {
 // 👤 ระบบสลับดูข้อมูลโปรไฟล์เพื่อน (Read-only)
 // ==========================================
 window.viewFriendProfile = async function(friendId) {
+    viewedFriendProfileId = friendId;
+    setStudentProfileNotice('');
     // 1. ซ่อนทุกหน้า แล้วเปิดโชว์เฉพาะหน้า Profile
     document.querySelectorAll('.page-view').forEach(page => { page.style.display = 'none'; page.classList.remove('active'); });
     const profilePage = document.getElementById('profile') || document.querySelector('.page-view:nth-child(1)'); 
@@ -53,9 +55,15 @@ window.viewFriendProfile = async function(friendId) {
     }
 
     // 2. เคลียร์ Active ของเมนูด้านซ้าย แล้วให้ไป Active ที่เมนูข้อมูลส่วนตัวแทน
-    document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+        item.removeAttribute('aria-current');
+    });
     const profileMenu = document.querySelectorAll('.menu-item')[0];
-    if(profileMenu) profileMenu.classList.add('active');
+    if (profileMenu) {
+        profileMenu.classList.add('active');
+        profileMenu.setAttribute('aria-current', 'page');
+    }
 
     // 3. ปรับ Header เสกปุ่ม "กลับหน้าแชท" และซ่อนปุ่ม Save ของเดิม
     const h2Elements = profilePage.querySelectorAll('h2, .section-header');
@@ -65,8 +73,9 @@ window.viewFriendProfile = async function(friendId) {
                 <button onclick="backToChatFromProfile()" style="background: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db; padding: 6px 14px; border-radius: 8px; margin-right: 15px; cursor: pointer; font-family: 'Prompt'; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
                     <i class="fa-solid fa-arrow-left"></i> กลับไปหน้าแชท
                 </button>
-                ข้อมูลของเพื่อน (${friendId})
+                <span>ข้อมูลของเพื่อน</span>
             `;
+            el.querySelector('span').textContent = `ข้อมูลของเพื่อน (${friendId})`;
         }
     });
 
@@ -90,24 +99,25 @@ window.viewFriendProfile = async function(friendId) {
         }
     }
 
-   // โหลดรูปโปรไฟล์ของเพื่อน (ใช้ API สร้างรูปโปรไฟล์จากรหัสนักศึกษาอัตโนมัติ)
     const avatarImg = document.getElementById('profile-avatar-img');
     const defaultIcon = document.getElementById('default-avatar-icon');
     if (avatarImg && defaultIcon) {
-        // ใช้ ui-avatars สร้างรูปให้เพื่อนแบบอัตโนมัติ
-        avatarImg.src = `https://ui-avatars.com/api/?name=${friendId}&background=random&color=fff&size=150&font-size=0.4`;
-        avatarImg.style.display = 'block';
-        defaultIcon.style.display = 'none';
+        avatarImg.style.display = 'none';
+        defaultIcon.style.display = '';
     }
         
 
     // 4. ล็อก Input ทั้งหมดไม่ให้แก้ไข และเปลี่ยนสีพื้นหลังให้ดูเป็น Read-only
-    const inputs = ['profile-fullname', 'profile-faculty', 'profile-major', 'profile-age', 'profile-freetime', 'profile-mbti', 'profile-learning-style', 'profile-social'];
+    const inputs = ['profile-fullname', 'profile-faculty', 'profile-major', 'profile-age', 'profile-freetime', 'profile-mbti', 'profile-learning-style', 'profile-social', 'profile-year-level'];
+    const displayId = document.getElementById('display-student-id');
+    if (displayId) displayId.textContent = friendId;
+    const displayName = document.getElementById('display-profile-name');
+    if (displayName) displayName.textContent = friendId;
     
     inputs.forEach(id => {
         const el = document.getElementById(id);
         if(el) {
-            el.value = 'กำลังโหลดข้อมูล...';
+            el.value = '';
             el.readOnly = true;
             el.style.backgroundColor = '#f9fafb';
             el.style.color = '#6b7280';
@@ -116,28 +126,15 @@ window.viewFriendProfile = async function(friendId) {
         }
     });
 
-    // 5. ดึงข้อมูลเพื่อนจาก Database มาใส่
-    const { data, error } = await supabaseClient.from('profiles').select('*').eq('student_id', friendId).single();
-    if (data) {
-        const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim();
-        
-        // อัปเดตชื่อตัวใหญ่ใต้รูปโปรไฟล์ให้เป็นของเพื่อน
-        const displayNameEl = document.getElementById('display-profile-name');
-        if (displayNameEl) displayNameEl.innerText = fullName || friendId;
-
-        if(document.getElementById('profile-fullname')) document.getElementById('profile-fullname').value = fullName || '-';
-        if(document.getElementById('profile-faculty')) document.getElementById('profile-faculty').value = data.faculty || '-';
-        if(document.getElementById('profile-major')) document.getElementById('profile-major').value = data.major || '-';
-        if(document.getElementById('profile-age')) document.getElementById('profile-age').value = data.age || '-';
-        if(document.getElementById('profile-freetime')) document.getElementById('profile-freetime').value = data.free_time || '-';
-        if(document.getElementById('profile-mbti')) document.getElementById('profile-mbti').value = data.mbti || '-';
-        if(document.getElementById('profile-learning-style')) document.getElementById('profile-learning-style').value = data.learning_style || '-';
-        if(document.getElementById('profile-social')) document.getElementById('profile-social').value = data.social_media || '-';
-    } else {
-        inputs.forEach(id => { const el = document.getElementById(id); if(el) el.value = 'ไม่พบข้อมูลในระบบ'; });
-        const displayNameEl = document.getElementById('display-profile-name');
-        if (displayNameEl) displayNameEl.innerText = friendId;
-    }
+    const { data, error } = await supabaseClient.from('profile_directory').select('first_name,last_name')
+        .eq('student_id', friendId).maybeSingle();
+    if (viewedFriendProfileId !== friendId) return;
+    const fullName = data ? `${data.first_name || ''} ${data.last_name || ''}`.trim() : '';
+    if (displayName) displayName.textContent = fullName || friendId;
+    const nameField = document.getElementById('profile-fullname');
+    if (nameField) nameField.value = fullName;
+    setStudentProfileNotice(error ? 'โหลดข้อมูลเพื่อนไม่สำเร็จ' : data
+        ? 'โปรไฟล์เพื่อนแสดงเฉพาะชื่อและรหัสในรายชื่อ' : 'ไม่พบเพื่อนในรายชื่อ');
 };
 // ==========================================
 // 🔙 ฟังก์ชันปุ่ม "กลับหน้าแชท"
@@ -159,6 +156,8 @@ window.backToChatFromProfile = function() {
 // ♻️ ฟังก์ชันคืนค่าหน้าโปรไฟล์กลับเป็นของตัวเอง
 // ==========================================
 window.restoreMyProfile = function() {
+    if (!viewedFriendProfileId) return;
+    viewedFriendProfileId = null;
     const profilePage = document.getElementById('profile') || document.querySelector('.page-view:nth-child(1)'); 
     if (!profilePage) return;
 
@@ -180,12 +179,12 @@ window.restoreMyProfile = function() {
     if (editAvatarBtn) editAvatarBtn.style.display = 'flex';
 
     // 2. ปลดล็อก Input ทั้งหมด ให้แก้ไขได้ตามปกติ
-    const inputs = ['profile-fullname', 'profile-faculty', 'profile-major', 'profile-age', 'profile-freetime', 'profile-mbti', 'profile-learning-style', 'profile-social'];
+    const inputs = ['profile-fullname', 'profile-faculty', 'profile-major', 'profile-age', 'profile-freetime', 'profile-mbti', 'profile-learning-style', 'profile-social', 'profile-year-level'];
     inputs.forEach(id => {
         const el = document.getElementById(id);
         if(el) {
             el.value = '';
-            el.readOnly = false;
+            el.readOnly = id === 'profile-year-level';
             el.style.backgroundColor = '#ffffff';
             el.style.color = '#111827';
             el.style.cursor = 'text';
@@ -193,38 +192,36 @@ window.restoreMyProfile = function() {
         }
     });
 
-    // 3. โหลดข้อมูลของคุณปัณณทัตกลับมาทับ (ฟังก์ชันนี้จะดึงชื่อมาใส่ใต้รูปให้อัตโนมัติด้วย)
+    // โหลดโปรไฟล์ของบัญชีที่เข้าสู่ระบบกลับมาแสดง
     if (typeof fetchStudentProfileOnLogin === 'function') {
         fetchStudentProfileOnLogin();
     }
 };
 async function fetchFriendProfile(friendId) {
     const container = document.getElementById('friend-profile-details');
-    container.innerHTML = '<div style="text-align:center; font-size:12px; color:#999;">กำลังโหลดข้อมูล...</div>';
-    const { data, error } = await supabaseClient.from('profiles').select('*').eq('student_id', friendId).single();
-    if (error || !data) { container.innerHTML = '<div style="color:red; font-size:12px;">ไม่สามารถโหลดข้อมูลโปรไฟล์ได้</div>'; return; }
-    container.innerHTML = `
-        <div style="display: flex; justify-content: space-between; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;"><span style="font-size: 13px; color: #6b7280;">อายุ</span><span style="font-size: 13px; font-weight: 500; color: #111;">${data.age || '-'}</span></div>
-        <div style="display: flex; justify-content: space-between; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;"><span style="font-size: 13px; color: #6b7280;">MBTI</span><span style="font-size: 13px; font-weight: 500; color: #111;">${data.mbti || '-'}</span></div>
-        <div style="display: flex; justify-content: space-between; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;"><span style="font-size: 13px; color: #6b7280;">สไตล์การเรียน</span><span style="font-size: 13px; font-weight: 500; color: #111;">${data.learning_style || '-'}</span></div>
-        <div style="display: flex; justify-content: space-between; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;"><span style="font-size: 13px; color: #6b7280;">เวลาว่าง</span><span style="font-size: 13px; font-weight: 500; color: #111;">${data.free_time || '-'}</span></div>
-        <div style="display: flex; justify-content: space-between; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;"><span style="font-size: 13px; color: #6b7280;">Social Media</span><span style="font-size: 13px; font-weight: 500; color: #111;">${data.social_media || '-'}</span></div>
-    `;
+    container.textContent = 'กำลังโหลดข้อมูล...';
+    const { data, error } = await supabaseClient.from('profile_directory').select('first_name,last_name')
+        .eq('student_id', friendId).maybeSingle();
+    container.textContent = error ? 'โหลดข้อมูลเพื่อนไม่สำเร็จ' : data
+        ? `${data.first_name || ''} ${data.last_name || ''}`.trim() || friendId : 'ไม่พบเพื่อนในรายชื่อ';
 }
 
 window.unfriendUser = async function() {
-    if(!confirm("คุณต้องการลบเพื่อนคนนี้ใช่หรือไม่?")) return;
     const myId = localStorage.getItem('sut_student_id');
+    const friendId = currentFriendIdInDM;
+    const roomId = currentChatRoomId;
+    if (!await window.confirmAppAction('ต้องการลบเพื่อนคนนี้ใช่ไหมครับ', { title: 'ลบเพื่อน', confirmText: 'ลบเพื่อน', tone: 'danger' })) return;
+    if (myId !== localStorage.getItem('sut_student_id') || friendId !== currentFriendIdInDM || roomId !== currentChatRoomId) return;
     try {
-        await supabaseClient.from('friendships').delete().or(`and(requester_id.eq.${myId},receiver_id.eq.${currentFriendIdInDM}),and(requester_id.eq.${currentFriendIdInDM},receiver_id.eq.${myId})`);
-        await supabaseClient.from('chat_room_members').delete().eq('room_id', currentChatRoomId).eq('student_id', myId);
+        await supabaseClient.from('friendships').delete().or(`and(requester_id.eq.${myId},receiver_id.eq.${friendId}),and(requester_id.eq.${friendId},receiver_id.eq.${myId})`);
+        await supabaseClient.from('chat_room_members').delete().eq('room_id', roomId).eq('student_id', myId);
         closeModal('modal-group-info');
         document.querySelector('.chat-history').innerHTML = `<div style="text-align:center; color:#999; margin-top:50px;">เลือกแชทด้านซ้ายเพื่อเริ่มพูดคุย</div>`;
         document.getElementById('current-room-title').innerText = "ยังไม่ได้เลือกกลุ่ม";
         document.getElementById('btn-group-info').style.display = 'none';
         await loadChatRooms(); 
         showSuccessModal('สำเร็จ', "ลบเพื่อนเรียบร้อยแล้ว");
-    } catch (err) { alert("เกิดข้อผิดพลาด: " + err.message); }
+    } catch (err) { window.showAppNotice("เกิดข้อผิดพลาด: " + err.message); }
 };
 
 async function fetchGroupMembers() {
@@ -237,23 +234,24 @@ async function fetchGroupMembers() {
         document.getElementById('badge-member-count').innerText = `(${members.length})`;
 
         const studentIds = members.map(m => m.student_id);
-        const { data: profiles } = await supabaseClient.from('profiles').select('student_id, first_name, last_name').in('student_id', studentIds);
-        const profileMap = {};
-        if (profiles) profiles.forEach(p => { profileMap[p.student_id] = `${p.first_name || ''} ${p.last_name || ''}`.trim(); });
+        const { data: profiles, error: directoryError } = await supabaseClient.from('profile_directory')
+            .select('student_id, first_name, last_name').in('student_id', studentIds);
+        if (directoryError) throw directoryError;
+        const profileMap = new Map(profiles.map(p => [p.student_id, `${p.first_name || ''} ${p.last_name || ''}`.trim()]));
 
         listContainer.innerHTML = '';
         members.forEach(m => {
-            const name = profileMap[m.student_id] || 'ไม่ระบุชื่อ';
+            const name = profileMap.get(m.student_id) || 'ไม่ระบุชื่อ';
             const isAdmin = m.role === 'admin';
             const roleBadge = isAdmin ? `<span style="background:#fef08a; color:#854d0e; font-size:10px; padding:2px 6px; border-radius:10px; margin-left:8px;">Admin</span>` : '';
             listContainer.innerHTML += `
                 <div style="display: flex; align-items: center; gap: 12px; padding: 8px 0;">
-                    <div style="width: 36px; height: 36px; background: #e5e7eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6b7280; font-weight: bold; font-size: 14px;">${m.student_id.substring(0, 1)}</div>
-                    <div><div style="font-size: 14px; font-weight: 500; color: #111;">${m.student_id} ${roleBadge}</div><div style="font-size: 12px; color: #6b7280;">${name}</div></div>
+                    <div style="width: 36px; height: 36px; background: #e5e7eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6b7280; font-weight: bold; font-size: 14px;">${escapeCourseHTML(m.student_id.substring(0, 1))}</div>
+                    <div><div style="font-size: 14px; font-weight: 500; color: #111;">${escapeCourseHTML(m.student_id)} ${roleBadge}</div><div style="font-size: 12px; color: #6b7280;">${escapeCourseHTML(name)}</div></div>
                 </div>
             `;
         });
-    } catch (error) { listContainer.innerHTML = `<div style="color:red; font-size:12px;">เกิดข้อผิดพลาด: ${error.message}</div>`; }
+    } catch { listContainer.textContent = 'โหลดรายชื่อสมาชิกไม่สำเร็จ'; }
 }
 
 window.enableEditGroupName = function() {
@@ -292,7 +290,7 @@ window.saveGroupName = async function() {
         document.getElementById('current-room-title').innerText = newName;
         nameText.style.display = 'block'; nameInput.style.display = 'none'; editBtn.style.display = 'block'; saveBtn.style.display = 'none';
         await loadChatRooms(); 
-    } catch (error) { alert("เกิดข้อผิดพลาด: " + error.message); } 
+    } catch (error) { window.showAppNotice("เกิดข้อผิดพลาด: " + error.message); }
     finally { saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> บันทึกชื่อ'; saveBtn.disabled = false; }
 };
 
@@ -323,9 +321,12 @@ window.handleJoinRequest = async function(targetId, newStatus) {
 };
 
 window.leaveCurrentGroup = async function() {
-    if(!confirm("คุณต้องการออกจากกลุ่มนี้ใช่หรือไม่?")) return;
     const myId = localStorage.getItem('sut_student_id');
-    await supabaseClient.from('chat_room_members').delete().eq('room_id', currentChatRoomId).eq('student_id', myId);
+    const roomId = currentChatRoomId;
+    if (!await window.confirmAppAction('ต้องการออกจากกลุ่มนี้ใช่ไหมครับ', { title: 'ออกจากกลุ่ม', confirmText: 'ออกจากกลุ่ม' })) return;
+    if (myId !== localStorage.getItem('sut_student_id') || roomId !== currentChatRoomId) return;
+    const { error } = await supabaseClient.from('chat_room_members').delete().eq('room_id', roomId).eq('student_id', myId);
+    if (error) return window.showAppNotice('ออกจากกลุ่มไม่สำเร็จ กรุณาลองใหม่ครับ');
     closeModal('modal-group-info');
     document.querySelector('.chat-history').innerHTML = `<div style="text-align:center; color:#999; margin-top:50px;">เลือกกลุ่มแชทด้านซ้ายเพื่อเริ่มพูดคุย</div>`;
     document.getElementById('current-room-title').innerText = "ยังไม่ได้เลือกกลุ่ม";
@@ -349,10 +350,12 @@ async function loadFriendsData() {
         if (acceptedFriends) acceptedFriends.forEach(r => { targetIds.push(r.requester_id === myId ? r.receiver_id : r.requester_id); });
         targetIds = [...new Set(targetIds)];
 
-        let profileMap = {};
+        const profileMap = new Map();
         if (targetIds.length > 0) {
-            const { data: profiles } = await supabaseClient.from('profiles').select('student_id, first_name, last_name').in('student_id', targetIds);
-            if (profiles) profiles.forEach(p => { profileMap[p.student_id] = `${p.first_name || ''} ${p.last_name || ''}`.trim(); });
+            const { data: profiles, error } = await supabaseClient.from('profile_directory')
+                .select('student_id, first_name, last_name').in('student_id', targetIds);
+            if (error) throw error;
+            profiles.forEach(p => { profileMap.set(p.student_id, `${p.first_name || ''} ${p.last_name || ''}`.trim()); });
         }
 
         if (pendingReqs && pendingReqs.length > 0) {
@@ -360,16 +363,19 @@ async function loadFriendsData() {
             document.getElementById('friend-request-count').innerText = pendingReqs.length;
             reqContainer.innerHTML = '';
             pendingReqs.forEach(req => {
-                const name = profileMap[req.requester_id] || 'ไม่ระบุชื่อ';
-                reqContainer.innerHTML += `
+                const name = profileMap.get(req.requester_id) || 'ไม่ระบุชื่อ';
+                reqContainer.insertAdjacentHTML('beforeend', `
                     <div style="background: white; border: 1px solid #e5e7eb; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                        <div style="font-weight: 600; font-size: 13px; color: #111;">${req.requester_id}</div>
-                        <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px;">${name}</div>
+                        <div style="font-weight: 600; font-size: 13px; color: #111;">${escapeCourseHTML(req.requester_id)}</div>
+                        <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px;">${escapeCourseHTML(name)}</div>
                         <div style="display: flex; gap: 5px;">
-                            <button onclick="handleFriendRequest('${req.requester_id}', 'accepted')" style="flex: 1; background: #10b981; color: white; border: none; padding: 6px; border-radius: 6px; font-size: 12px; cursor: pointer;">รับแอด</button>
-                            <button onclick="handleFriendRequest('${req.requester_id}', 'rejected')" style="flex: 1; background: #f3f4f6; color: #4b5563; border: none; padding: 6px; border-radius: 6px; font-size: 12px; cursor: pointer;">ลบ</button>
+                            <button style="flex: 1; background: #10b981; color: white; border: none; padding: 6px; border-radius: 6px; font-size: 12px; cursor: pointer;">รับแอด</button>
+                            <button style="flex: 1; background: #f3f4f6; color: #4b5563; border: none; padding: 6px; border-radius: 6px; font-size: 12px; cursor: pointer;">ลบ</button>
                         </div>
-                    </div>`;
+                    </div>`);
+                const [accept, reject] = reqContainer.lastElementChild.querySelectorAll('button');
+                accept.addEventListener('click', () => handleFriendRequest(req.requester_id, 'accepted'));
+                reject.addEventListener('click', () => handleFriendRequest(req.requester_id, 'rejected'));
             });
         } else { reqSection.style.display = 'none'; }
 
@@ -379,19 +385,23 @@ async function loadFriendsData() {
         else {
             acceptedFriends.forEach(f => {
                 const friendId = f.requester_id === myId ? f.receiver_id : f.requester_id;
-                const name = profileMap[friendId] || 'ไม่ระบุชื่อ';
-                friendsContainer.innerHTML += `
-                    <div onclick="openDirectMessage('${friendId}', '${name}')" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer;">
-                        <div style="width: 35px; height: 35px; background: #dbeafe; color: #2563eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">${friendId.substring(0, 1)}</div>
+                const name = profileMap.get(friendId) || 'ไม่ระบุชื่อ';
+                friendsContainer.insertAdjacentHTML('beforeend', `
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer;">
+                        <div style="width: 35px; height: 35px; background: #dbeafe; color: #2563eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">${escapeCourseHTML(friendId.substring(0, 1))}</div>
                         <div style="flex: 1; overflow: hidden;">
-                            <div style="font-size: 13px; font-weight: 600; color: #111;">${friendId}</div>
-                            <div style="font-size: 11px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</div>
+                            <div style="font-size: 13px; font-weight: 600; color: #111;">${escapeCourseHTML(friendId)}</div>
+                            <div style="font-size: 11px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeCourseHTML(name)}</div>
                         </div>
                         <i class="fa-solid fa-comment-dots" style="color: #cbd5e1; font-size: 16px;"></i>
-                    </div>`;
+                    </div>`);
+                friendsContainer.lastElementChild.addEventListener('click', () => openDirectMessage(friendId, name));
             });
         }
-    } catch (err) { console.error('Error loading friends:', err); }
+    } catch {
+        friendsContainer.textContent = 'โหลดรายชื่อเพื่อนไม่สำเร็จ';
+        reqSection.style.display = 'none';
+    }
 }
 
 window.openDirectMessage = async function(friendId, friendName) {
@@ -415,6 +425,6 @@ window.openDirectMessage = async function(friendId, friendName) {
             if (memberError) throw memberError;
         }
         await selectChatRoom(roomId, displayRoomName);
-    } catch (error) { alert("ไม่สามารถสร้างห้องแชทได้: " + error.message); }
+    } catch (error) { window.showAppNotice("ไม่สามารถสร้างห้องแชทได้: " + error.message); }
 };
 

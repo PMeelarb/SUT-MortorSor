@@ -236,7 +236,7 @@ function subscribeToChat(roomId) {
 window.createNewGroup = async function() {
     const nameInput = document.getElementById('new-group-name');
     const typeSelect = document.getElementById('new-group-type');
-    if (!nameInput || nameInput.value.trim() === '') { alert('⚠️ กรุณากรอกชื่อกลุ่มครับ'); return; }
+    if (!nameInput || nameInput.value.trim() === '') { window.showAppNotice('⚠️ กรุณากรอกชื่อกลุ่มครับ'); return; }
 
     const groupName = nameInput.value.trim();
     const isPrivate = typeSelect ? typeSelect.value.includes('ส่วนตัว') : false; 
@@ -252,7 +252,7 @@ window.createNewGroup = async function() {
         document.getElementById('modal-create-group').style.display = 'none';
         nameInput.value = '';
         loadChatRooms();
-    } catch (error) { alert("เกิดข้อผิดพลาดในการสร้างกลุ่ม: " + error.message); }
+    } catch (error) { window.showAppNotice("เกิดข้อผิดพลาดในการสร้างกลุ่ม: " + error.message); }
 };
 
 window.searchCommunity = async function() {
@@ -263,7 +263,7 @@ window.searchCommunity = async function() {
     if (!searchInput || !resultsContainer) return;
     const keyword = searchInput.value.trim();
 if (!keyword) { 
-    showErrorModal('ข้อมูลไม่ครบถ้วน', 'กรุณาพิมพ์ <b>รหัสนักศึกษา</b> หรือ <b>ชื่อกลุ่ม</b> ลงในช่องค้นหาก่อนกดปุ่มค้นหานะครับ'); 
+    showErrorModal('ข้อมูลไม่ครบถ้วน', 'กรุณาพิมพ์รหัสนักศึกษาหรือชื่อกลุ่มในช่องค้นหาครับ');
     return; 
 }
     const myStudentId = localStorage.getItem('sut_student_id');
@@ -272,14 +272,17 @@ if (!keyword) {
     searchBtn.disabled = true;
 
     try {
-        const { data: users, error: userError } = await supabaseClient.from('profiles').select('student_id, first_name, last_name').neq('student_id', myStudentId).or(`student_id.ilike.%${keyword}%,first_name.ilike.%${keyword}%,last_name.ilike.%${keyword}%`).limit(10);
+        const pattern = JSON.stringify(`%${keyword.replace(/[\\%_]/g, '\\$&')}%`);
+        const { data: users, error: userError } = await supabaseClient.from('profile_directory')
+            .select('student_id, first_name, last_name').neq('student_id', myStudentId)
+            .or(`student_id.ilike.${pattern},first_name.ilike.${pattern},last_name.ilike.${pattern}`).limit(10);
         if (userError) throw userError;
 
         const { data: rooms, error: roomError } = await supabaseClient.from('chat_rooms').select('id, name, is_private').ilike('name', `%${keyword}%`).limit(10);
         if (roomError) throw roomError;
 
         renderSearchResults(users || [], rooms || []);
-    } catch (error) { resultsContainer.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 20px;">เกิดข้อผิดพลาด: ${error.message}</div>`; } 
+    } catch { resultsContainer.textContent = 'ค้นหาข้อมูลชุมชนไม่สำเร็จ'; }
     finally { searchBtn.innerText = originalText; searchBtn.disabled = false; }
 };
 
@@ -302,9 +305,10 @@ function renderSearchResults(users, rooms) {
             const item = document.createElement('div');
             item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 6px;';
             item.innerHTML = `
-                <div><div style="font-weight: 600; font-size: 14px; color: #1f2937;">${u.student_id}</div><div style="font-size: 12px; color: #6b7280;">${name}</div></div>
-                <button onclick="sendFriendRequest('${u.student_id}')" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: 'Prompt', sans-serif;"><i class="fa-solid fa-user-plus"></i> เพิ่มเพื่อน</button>
+                <div><div style="font-weight: 600; font-size: 14px; color: #1f2937;">${escapeCourseHTML(u.student_id)}</div><div style="font-size: 12px; color: #6b7280;">${escapeCourseHTML(name)}</div></div>
+                <button style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: 'Prompt', sans-serif;"><i class="fa-solid fa-user-plus"></i> เพิ่มเพื่อน</button>
             `;
+            item.querySelector('button').addEventListener('click', () => sendFriendRequest(u.student_id));
             userSection.appendChild(item);
         });
     }
@@ -330,11 +334,11 @@ window.sendFriendRequest = async function(targetStudentId) {
     const myStudentId = localStorage.getItem('sut_student_id');
     try {
         const { data: existing } = await supabaseClient.from('friendships').select('*').or(`and(requester_id.eq.${myStudentId},receiver_id.eq.${targetStudentId}),and(requester_id.eq.${targetStudentId},receiver_id.eq.${myStudentId})`);
-        if (existing && existing.length > 0) return alert('คุณและผู้ใช้นี้มีความสัมพันธ์หรือส่งคำขอกันอยู่แล้วครับ');
+        if (existing && existing.length > 0) return window.showAppNotice('คุณและผู้ใช้นี้มีความสัมพันธ์หรือส่งคำขอกันอยู่แล้วครับ');
         const { error } = await supabaseClient.from('friendships').insert([{ requester_id: myStudentId, receiver_id: targetStudentId, status: 'pending' }]);
         if (error) throw error;
         showSuccessModal('สำเร็จ!', `ส่งคำขอเป็นเพื่อนกับ ${targetStudentId} แล้ว!`);
-    } catch (err) { alert('เกิดข้อผิดพลาดในการส่งคำขอ: ' + err.message); }
+    } catch (err) { window.showAppNotice('เกิดข้อผิดพลาดในการส่งคำขอ: ' + err.message); }
 };
 
 window.joinPublicGroupDirect = async function(roomId, roomName) {
@@ -344,7 +348,7 @@ window.joinPublicGroupDirect = async function(roomId, roomName) {
         closeModal('modal-add-friend');
         await loadChatRooms();
         selectChatRoom(roomId, roomName);
-    } catch (err) { alert('ไม่สามารถเข้ากลุ่มได้: ' + err.message); }
+    } catch (err) { window.showAppNotice('ไม่สามารถเข้ากลุ่มได้: ' + err.message); }
 };
 
 window.requestJoinPrivateGroup = async function(roomId, roomName) {
@@ -353,6 +357,6 @@ window.requestJoinPrivateGroup = async function(roomId, roomName) {
         const { error } = await supabaseClient.from('chat_room_members').insert([{ room_id: roomId, student_id: myStudentId, role: 'member', status: 'pending' }]);
         if (error) throw error;
         showSuccessModal('สำเร็จ!', `ส่งคำขอเข้าร่วมกลุ่ม "${roomName}" แล้ว รอแอดมินอนุมัติครับ`);
-    } catch (err) { alert('ส่งคำขอไม่สำเร็จ หรือคุณเคยส่งคำขอไปแล้ว: ' + err.message); }
+    } catch (err) { window.showAppNotice('ส่งคำขอไม่สำเร็จ หรือคุณเคยส่งคำขอไปแล้ว: ' + err.message); }
 };
 
